@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    container_name: keepmemotivated-pg
+    container_name: keepmymotivation-pg
     restart: unless-stopped
     environment:
       POSTGRES_USER: kmm
