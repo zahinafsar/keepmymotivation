@@ -20,10 +20,16 @@ export default async function DashboardPage({
   if (!user) redirect("/login");
 
   const params = await searchParams;
-  const lastEmail = await prisma.emailLog.findFirst({
-    where: { userId: user.id },
-    orderBy: { sentAt: "desc" },
-  });
+  const [lastEmail, goals] = await Promise.all([
+    prisma.emailLog.findFirst({
+      where: { userId: user.id },
+      orderBy: { sentAt: "desc" },
+    }),
+    prisma.goal.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   return (
     <DashboardClient
@@ -32,7 +38,6 @@ export default async function DashboardPage({
         email: user.email,
         timezone: user.timezone,
       }}
-      goal={user.goal ? { goalText: user.goal.goalText, sendHour: user.goal.sendHour } : null}
       subscription={
         user.subscription
           ? {
@@ -42,6 +47,15 @@ export default async function DashboardPage({
             }
           : null
       }
+      goals={goals.map((g) => ({
+        id: g.id,
+        goalText: g.goalText,
+        kind: g.kind,
+        hour: g.hour,
+        dayOfWeek: g.dayOfWeek,
+        dayOfMonth: g.dayOfMonth,
+        active: g.active,
+      }))}
       lastEmailAt={lastEmail?.sentAt.toISOString() ?? null}
       welcome={params.welcome === "1"}
       upgraded={params.upgraded === "1"}

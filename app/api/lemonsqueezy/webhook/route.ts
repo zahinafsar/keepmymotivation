@@ -6,6 +6,7 @@ import {
   type LsSubscriptionPayload,
   type LsInvoicePayload,
 } from "@/lib/lemonsqueezy";
+import { PLAN_ALLOWED_KINDS } from "@/lib/plan";
 import type { Plan } from "@prisma/client";
 
 export const runtime = "nodejs";
@@ -42,15 +43,23 @@ export async function POST(req: NextRequest) {
         const periodEndIso =
           p.data.attributes.ends_at ?? p.data.attributes.renews_at ?? null;
 
+        const effectivePlan: Plan = status === "CANCELED" ? "SPARK" : plan;
         await prisma.subscription.update({
           where: { userId },
           data: {
-            plan: status === "CANCELED" ? "SPARK" : plan,
+            plan: effectivePlan,
             status,
             lsSubscriptionId: p.data.id,
             lsCustomerId: String(p.data.attributes.customer_id),
             currentPeriodEnd: periodEndIso ? new Date(periodEndIso) : null,
           },
+        });
+
+        // Deactivate goals whose kind is not allowed under the new plan.
+        const allowed = PLAN_ALLOWED_KINDS[effectivePlan];
+        await prisma.goal.updateMany({
+          where: { userId, kind: { notIn: allowed }, active: true },
+          data: { active: false },
         });
         break;
       }

@@ -19,6 +19,52 @@ export function checkoutUrlForPlan(plan: Exclude<Plan, "SPARK">): string {
     : env.LEMONSQUEEZY_CHECKOUT_DRIVE();
 }
 
+export function variantIdForPlan(plan: Exclude<Plan, "SPARK">): string {
+  return plan === "BOOST"
+    ? env.LEMONSQUEEZY_VARIANT_BOOST()
+    : env.LEMONSQUEEZY_VARIANT_DRIVE();
+}
+
+const LS_API = "https://api.lemonsqueezy.com/v1";
+
+async function lsFetch(path: string, init: RequestInit): Promise<unknown> {
+  const res = await fetch(`${LS_API}${path}`, {
+    ...init,
+    headers: {
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+      Authorization: `Bearer ${env.LEMONSQUEEZY_API_KEY()}`,
+      ...(init.headers ?? {}),
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`LS API ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return text ? JSON.parse(text) : null;
+}
+
+export async function cancelLsSubscription(lsSubscriptionId: string): Promise<void> {
+  await lsFetch(`/subscriptions/${lsSubscriptionId}`, { method: "DELETE" });
+}
+
+export async function changeLsSubscriptionPlan(
+  lsSubscriptionId: string,
+  plan: Exclude<Plan, "SPARK">
+): Promise<void> {
+  const variantId = variantIdForPlan(plan);
+  await lsFetch(`/subscriptions/${lsSubscriptionId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      data: {
+        type: "subscriptions",
+        id: lsSubscriptionId,
+        attributes: { variant_id: Number(variantId), invoice_immediately: true },
+      },
+    }),
+  });
+}
+
 export function mapLsStatus(status: string): SubStatus {
   switch (status) {
     case "active":

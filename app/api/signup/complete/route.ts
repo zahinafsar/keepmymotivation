@@ -37,24 +37,31 @@ export async function POST(req: NextRequest) {
 
   const pinHash = await hashPin(b.pin);
 
+  const now = new Date();
+  const dayOfMonth = now.getUTCDate();
+
   const user = await prisma.user.create({
     data: {
       fullname: b.fullname.trim(),
       email: b.email.trim().toLowerCase(),
       pinHash,
       timezone: b.timezone || "UTC",
-      goal: {
+      goals: {
         create: {
           goalText: b.goal,
           clarifyQA: b.clarifyQA ?? [],
           theme: b.theme,
           imageKeyword: b.imageKeyword,
           subjectHint: b.subjectHint,
-          sendHour: b.sendHour,
+          kind: "MONTHLY",
+          hour: b.sendHour,
+          dayOfMonth,
+          dayOfWeek: null,
         },
       },
       subscription: { create: { plan: "SPARK", status: "ACTIVE" } },
     },
+    include: { goals: true },
   });
 
   await prisma.emailVerification.delete({ where: { email: b.email } }).catch(() => {});

@@ -14,7 +14,7 @@ model User {
   pinHash      String
   timezone     String
   createdAt    DateTime      @default(now())
-  goal         Goal?
+  goals        Goal[]
   subscription Subscription?
   emailLogs    EmailLog[]
   sessions     Session[]
@@ -29,15 +29,23 @@ model EmailVerification {
 }
 
 model Goal {
-  id           String @id @default(cuid())
-  userId       String @unique
-  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   goalText     String
   clarifyQA    Json
   theme        String
   imageKeyword String
   subjectHint  String
-  sendHour     Int
+  kind         ScheduleKind
+  hour         Int
+  dayOfWeek    Int?
+  dayOfMonth   Int?
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  emailLogs    EmailLog[]
+
+  @@index([userId])
 }
 
 model Subscription {
@@ -57,6 +65,8 @@ model EmailLog {
   id       String   @id @default(cuid())
   userId   String
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalId   String?
+  goal     Goal?    @relation(fields: [goalId], references: [id], onDelete: SetNull)
   sentAt   DateTime @default(now())
   subject  String
   body     String
@@ -65,6 +75,7 @@ model EmailLog {
   preview  Boolean  @default(false)
 
   @@index([userId, sentAt])
+  @@index([goalId, sentAt])
 }
 
 model Session {
@@ -81,6 +92,12 @@ enum Plan {
   SPARK
   BOOST
   DRIVE
+}
+
+enum ScheduleKind {
+  DAILY
+  WEEKLY
+  MONTHLY
 }
 
 enum SubStatus {

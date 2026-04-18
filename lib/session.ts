@@ -45,7 +45,7 @@ export async function getSessionUser() {
   if (!token || !sig || !verifySig(token, sig)) return null;
   const session = await prisma.session.findUnique({
     where: { token },
-    include: { user: { include: { subscription: true, goal: true } } },
+    include: { user: { include: { subscription: true, goals: true } } },
   });
   if (!session || session.expiresAt < new Date()) return null;
   return session.user;

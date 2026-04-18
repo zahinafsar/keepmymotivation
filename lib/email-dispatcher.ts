@@ -7,26 +7,35 @@ import { env } from "./env";
 
 export async function sendMotivationEmailForUser(
   userId: string,
-  opts: { preview?: boolean } = {}
+  opts: { preview?: boolean; goalId?: string } = {}
 ) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { goal: true, subscription: true, emailLogs: { orderBy: { sentAt: "desc" }, take: 1 } },
+    include: {
+      subscription: true,
+      goals: { orderBy: { createdAt: "asc" } },
+    },
   });
-  if (!user || !user.goal || !user.subscription) throw new Error("User/goal/sub missing");
+  if (!user || !user.subscription) throw new Error("User/sub missing");
 
-  const dayIndex = (await prisma.emailLog.count({ where: { userId } })) + 1;
+  const goal = opts.goalId
+    ? user.goals.find((g) => g.id === opts.goalId)
+    : user.goals[0];
+  if (!goal) throw new Error("Goal missing");
+
+  const dayIndex =
+    (await prisma.emailLog.count({ where: { goalId: goal.id } })) + 1;
 
   const [copy, image] = await Promise.all([
     generateMotivationCopy({
       fullname: user.fullname,
-      goal: user.goal.goalText,
-      clarifyQA: user.goal.clarifyQA as unknown as ClarifyTurn[],
-      theme: user.goal.theme,
-      subjectHint: user.goal.subjectHint,
+      goal: goal.goalText,
+      clarifyQA: goal.clarifyQA as unknown as ClarifyTurn[],
+      theme: goal.theme,
+      subjectHint: goal.subjectHint,
       dayIndex,
     }),
-    searchUnsplash(user.goal.imageKeyword).catch(() => null),
+    searchUnsplash(goal.imageKeyword).catch(() => null),
   ]);
 
   const showUpgrade = user.subscription.plan === "SPARK";
@@ -48,6 +57,7 @@ export async function sendMotivationEmailForUser(
   await prisma.emailLog.create({
     data: {
       userId,
+      goalId: goal.id,
       subject: copy.subject,
       body: copy.body,
       imageUrl: image?.url ?? null,
