@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: keepmemotivated-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kmm
+      POSTGRES_PASSWORD: kmm_dev_pw
+      POSTGRES_DB: keepmemotivated
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

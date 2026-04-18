@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  fullname     String
+  email        String        @unique
+  pinHash      String
+  timezone     String
+  createdAt    DateTime      @default(now())
+  goal         Goal?
+  subscription Subscription?
+  emailLogs    EmailLog[]
+  sessions     Session[]
+}
+
+model EmailVerification {
+  email     String   @id
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+}
+
+model Goal {
+  id           String @id @default(cuid())
+  userId       String @unique
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalText     String
+  clarifyQA    Json
+  theme        String
+  imageKeyword String
+  subjectHint  String
+  sendHour     Int
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan             Plan      @default(SPARK)
+  status           SubStatus @default(ACTIVE)
+  lsCustomerId     String?   @unique
+  lsSubscriptionId String?   @unique
+  currentPeriodEnd DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model EmailLog {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentAt   DateTime @default(now())
+  subject  String
+  body     String
+  imageUrl String?
+  plan     Plan
+  preview  Boolean  @default(false)
+
+  @@index([userId, sentAt])
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+enum Plan {
+  SPARK
+  BOOST
+  DRIVE
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+}
