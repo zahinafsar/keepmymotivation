@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { sendEmail } from "./resend";
-import { searchUnsplash } from "./stock";
+import { searchPexels } from "./stock";
 import { generateMotivationCopy, type ClarifyTurn } from "./gemini";
 import MotivationEmail from "../emails/MotivationEmail";
 import { env } from "./env";
@@ -35,7 +35,7 @@ export async function sendMotivationEmailForUser(
       subjectHint: goal.subjectHint,
       dayIndex,
     }),
-    searchUnsplash(goal.imageKeyword).catch(() => null),
+    searchPexels(goal.imageKeyword).catch(() => null),
   ]);
 
   const showUpgrade = user.subscription.plan === "SPARK";

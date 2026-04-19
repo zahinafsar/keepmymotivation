@@ -111,11 +111,11 @@ export type MotivationCopy = {
   quoteAuthor: string;
 };
 
-const COPY_SYSTEM = `You write short, vivid, emotionally resonant motivational emails. Output strict JSON.
+const COPY_SYSTEM = `You write ultra-short, punchy motivational emails. Output strict JSON.
 - subject: compelling, <60 chars.
 - greeting: 1 line, warm, uses first name.
-- body: 3-5 short paragraphs (plain text, \\n separated). Speak directly to the goal, reference the theme, include concrete sensory imagery. No generic platitudes.
-- quote: one real, well-known motivational quote relevant to the theme.
+- body: 2 short paragraphs MAX, ~40-70 words TOTAL (plain text, \\n separated). Speak directly to the goal + theme. One concrete image. No filler, no platitudes, no throat-clearing.
+- quote: one real motivational quote relevant to the theme (kept for metadata, not displayed).
 - quoteAuthor: attribution.
 Absolutely no markdown, no emojis.`;
 

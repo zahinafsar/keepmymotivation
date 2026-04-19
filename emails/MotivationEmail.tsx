@@ -2,7 +2,6 @@ import {
   Body,
   Container,
   Head,
-  Heading,
   Html,
   Img,
   Link,
@@ -24,17 +23,16 @@ export type MotivationEmailProps = {
 export default function MotivationEmail({
   greeting,
   body: bodyText,
-  quote,
-  quoteAuthor,
   image,
   upgradeUrl,
   showUpgrade,
 }: MotivationEmailProps) {
   const paragraphs = bodyText.split(/\n+/).filter(Boolean);
+  const previewText = paragraphs[0] ?? greeting;
   return (
     <Html>
       <Head />
-      <Preview>{quote}</Preview>
+      <Preview>{previewText}</Preview>
       <Body style={bodyStyle}>
         <Container style={container}>
           {image && (
@@ -48,19 +46,13 @@ export default function MotivationEmail({
               />
             </Section>
           )}
-          <Section style={{ padding: "28px 32px 8px" }}>
+          <Section style={{ padding: "28px 32px 20px" }}>
             <Text style={greetingStyle}>{greeting}</Text>
             {paragraphs.map((p, i) => (
               <Text key={i} style={para}>
                 {p}
               </Text>
             ))}
-          </Section>
-          <Section style={quoteBox}>
-            <Heading as="h2" style={quoteText}>
-              &ldquo;{quote}&rdquo;
-            </Heading>
-            <Text style={quoteAuthorStyle}>— {quoteAuthor}</Text>
           </Section>
           {showUpgrade && upgradeUrl && (
             <Section style={{ padding: "0 32px 28px", textAlign: "center" }}>
@@ -78,7 +70,7 @@ export default function MotivationEmail({
               <Link href={image.credit.link} style={creditLink}>
                 {image.credit.name}
               </Link>{" "}
-              on Unsplash
+              on Pexels
             </Text>
           )}
         </Container>
@@ -118,26 +110,6 @@ const para: React.CSSProperties = {
   fontSize: 15,
   lineHeight: 1.65,
   margin: "0 0 14px",
-};
-const quoteBox: React.CSSProperties = {
-  backgroundColor: "#0f0f14",
-  borderLeft: "3px solid #f97316",
-  margin: "12px 32px 24px",
-  padding: "18px 22px",
-  borderRadius: 6,
-};
-const quoteText: React.CSSProperties = {
-  color: "#fff",
-  fontSize: 17,
-  fontStyle: "italic",
-  fontWeight: 500,
-  lineHeight: 1.45,
-  margin: "0 0 8px",
-};
-const quoteAuthorStyle: React.CSSProperties = {
-  color: "#9999a3",
-  fontSize: 13,
-  margin: 0,
 };
 const upgradeHint: React.CSSProperties = {
   color: "#a1a1aa",

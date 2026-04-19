@@ -10,7 +10,7 @@ Personalized motivational emails on a user-chosen schedule. Next.js 16 + Prisma 
 - **Auth**: Email OTP + PIN, HMAC-signed session cookies
 - **Email**: Resend + React Email
 - **AI**: OpenAI (`gpt-4o-mini`) for clarify agent + motivation copy
-- **Imagery**: Unsplash
+- **Imagery**: Pexels
 - **Payments**: Lemon Squeezy (webhook + hosted checkout)
 - **Process manager**: PM2 (app + hourly cron)
 
@@ -35,7 +35,7 @@ Copy `.env` (or create) with:
 DATABASE_URL="postgresql://kmm:kmm_dev_pw@localhost:5433/keepmemotivated?schema=public"
 
 OPENAI_API_KEY="..."
-UNSPLASH_ACCESS_KEY="..."
+PEXELS_API_KEY="..."
 
 RESEND_API_KEY="..."
 RESEND_FROM="KeepMyMotivation <noreply@keepmymotivation.com>"
