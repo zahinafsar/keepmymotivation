@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Select from "@/components/Select";
+import AnalogClock from "@/components/AnalogClock";
 
 type Plan = "SPARK" | "BOOST" | "DRIVE";
 type Kind = "DAILY" | "WEEKLY" | "MONTHLY";
@@ -253,22 +254,27 @@ export default function DashboardClient(props: Props) {
           </div>
         )}
 
-        <section className="glass glass-hover p-6 mb-10 fade-up delay-100">
-          <p className="text-xs uppercase tracking-wider text-[color:var(--muted)] mb-2">
-            Current plan
-          </p>
-          <p className="text-lg font-semibold text-gradient">{info.name}</p>
-          <p className="text-sm text-[color:var(--muted)]">
-            {info.features[0]} · {activeCount}/{info.max} active goals
-          </p>
-          <p className="text-xs text-[color:var(--muted)] mt-3">
-            Timezone: {props.user.timezone}
-          </p>
-          {props.lastEmailAt && (
-            <p className="text-xs text-[color:var(--muted)]">
-              Last email: {new Date(props.lastEmailAt).toLocaleString()}
+        <section className="glass glass-hover p-6 mb-10 fade-up delay-100 flex items-center gap-6">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs uppercase tracking-wider text-[color:var(--muted)] mb-2">
+              Current plan
             </p>
-          )}
+            <p className="text-lg font-semibold text-gradient">{info.name}</p>
+            <p className="text-sm text-[color:var(--muted)]">
+              {info.features[0]} · {activeCount}/{info.max} active goals
+            </p>
+            <p className="text-xs text-[color:var(--muted)] mt-3">
+              Timezone: {props.user.timezone}
+            </p>
+            {props.lastEmailAt && (
+              <p className="text-xs text-[color:var(--muted)]">
+                Last email: {new Date(props.lastEmailAt).toLocaleString()}
+              </p>
+            )}
+          </div>
+          <div className="shrink-0">
+            <AnalogClock timezone={props.user.timezone} size={160} />
+          </div>
         </section>
 
         <section className="fade-up delay-200 mb-12">
