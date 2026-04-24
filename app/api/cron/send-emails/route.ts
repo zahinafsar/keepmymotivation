@@ -6,7 +6,7 @@ import { sendMotivationEmailForUser } from "@/lib/email-dispatcher";
 import {
   PLAN_MAX_SCHEDULES,
   PLAN_ALLOWED_KINDS,
-  KIND_WINDOW_MS,
+  alreadySentThisPeriod,
   matchesSchedule,
 } from "@/lib/plan";
 
@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
   }
 
   const now = DateTime.utc();
-  const nowMs = now.toMillis();
 
   const users = await prisma.user.findMany({
     where: {
@@ -83,18 +82,16 @@ export async function POST(req: NextRequest) {
       const last = await prisma.emailLog.findFirst({
         where: { goalId: goal.id },
         orderBy: { sentAt: "desc" },
+        select: { sentAt: true },
       });
-      if (last) {
-        const elapsed = nowMs - last.sentAt.getTime();
-        if (elapsed < KIND_WINDOW_MS[goal.kind]) {
-          results.push({
-            userId: user.id,
-            goalId: goal.id,
-            sent: false,
-            reason: "window-not-elapsed",
-          });
-          continue;
-        }
+      if (last && alreadySentThisPeriod(goal.kind, last.sentAt, user.timezone, now)) {
+        results.push({
+          userId: user.id,
+          goalId: goal.id,
+          sent: false,
+          reason: "already-sent-this-period",
+        });
+        continue;
       }
 
       try {

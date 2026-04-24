@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import type { Plan, ScheduleKind } from "@prisma/client";
 
 export const PLAN_MAX_SCHEDULES: Record<Plan, number> = {
@@ -12,11 +13,19 @@ export const PLAN_ALLOWED_KINDS: Record<Plan, ScheduleKind[]> = {
   DRIVE: ["MONTHLY", "WEEKLY", "DAILY"],
 };
 
-export const KIND_WINDOW_MS: Record<ScheduleKind, number> = {
-  DAILY: 24 * 60 * 60 * 1000,
-  WEEKLY: 7 * 24 * 60 * 60 * 1000,
-  MONTHLY: 30 * 24 * 60 * 60 * 1000,
-};
+export function alreadySentThisPeriod(
+  kind: ScheduleKind,
+  lastSentUtc: Date,
+  tz: string,
+  now: DateTime
+): boolean {
+  const cur = now.setZone(tz);
+  const last = DateTime.fromJSDate(lastSentUtc, { zone: "utc" }).setZone(tz);
+  if (kind === "DAILY") return last.hasSame(cur, "day");
+  if (kind === "WEEKLY")
+    return last.weekYear === cur.weekYear && last.weekNumber === cur.weekNumber;
+  return last.year === cur.year && last.month === cur.month;
+}
 
 export function daysInMonth(year: number, month1to12: number): number {
   return new Date(year, month1to12, 0).getDate();
