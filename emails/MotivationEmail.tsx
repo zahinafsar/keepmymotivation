@@ -18,6 +18,7 @@ export type MotivationEmailProps = {
   image?: { url: string; alt: string; credit: { name: string; link: string } } | null;
   upgradeUrl?: string;
   showUpgrade?: boolean;
+  manageUrl: string;
 };
 
 export default function MotivationEmail({
@@ -26,6 +27,7 @@ export default function MotivationEmail({
   image,
   upgradeUrl,
   showUpgrade,
+  manageUrl,
 }: MotivationEmailProps) {
   const paragraphs = bodyText.split(/\n+/).filter(Boolean);
   const previewText = paragraphs[0] ?? greeting;
@@ -55,13 +57,14 @@ export default function MotivationEmail({
             ))}
           </Section>
           {showUpgrade && upgradeUrl && (
-            <Section style={{ padding: "0 32px 28px", textAlign: "center" }}>
+            <Section style={{ padding: "0 32px 24px" }}>
               <Text style={upgradeHint}>
-                Want this every week or every day? Upgrade your plan.
+                Prefer a different cadence?{" "}
+                <Link href={upgradeUrl} style={upgradeLink}>
+                  Adjust your schedule
+                </Link>
+                .
               </Text>
-              <Link href={upgradeUrl} style={upgradeBtn}>
-                Upgrade
-              </Link>
             </Section>
           )}
           {image && (
@@ -73,6 +76,16 @@ export default function MotivationEmail({
               on Pexels
             </Text>
           )}
+          <Section style={footer}>
+            <Text style={footerText}>
+              You receive this because you set a goal at KeepMyMotivation.
+              <br />
+              <Link href={manageUrl} style={footerLink}>
+                Manage your goals
+              </Link>{" "}
+              to pause or stop these emails.
+            </Text>
+          </Section>
         </Container>
       </Body>
     </Html>
@@ -116,21 +129,30 @@ const upgradeHint: React.CSSProperties = {
   fontSize: 13,
   margin: "0 0 12px",
 };
-const upgradeBtn: React.CSSProperties = {
-  display: "inline-block",
-  backgroundColor: "#f97316",
-  color: "#0b0b0f",
-  textDecoration: "none",
-  padding: "10px 22px",
-  borderRadius: 999,
-  fontWeight: 600,
-  fontSize: 14,
+const upgradeLink: React.CSSProperties = {
+  color: "#d4d4d8",
+  textDecoration: "underline",
 };
 const credit: React.CSSProperties = {
   color: "#5c5c66",
   fontSize: 11,
   textAlign: "center",
-  padding: "0 16px 20px",
+  padding: "0 16px 16px",
   margin: 0,
 };
 const creditLink: React.CSSProperties = { color: "#9999a3" };
+const footer: React.CSSProperties = {
+  borderTop: "1px solid #26262f",
+  padding: "16px 32px 20px",
+};
+const footerText: React.CSSProperties = {
+  color: "#6b6b75",
+  fontSize: 11,
+  lineHeight: 1.6,
+  textAlign: "center",
+  margin: 0,
+};
+const footerLink: React.CSSProperties = {
+  color: "#9999a3",
+  textDecoration: "underline",
+};

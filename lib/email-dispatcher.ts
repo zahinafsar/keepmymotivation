@@ -39,6 +39,7 @@ export async function sendMotivationEmailForUser(
   ]);
 
   const showUpgrade = user.subscription.plan === "SPARK";
+  const manageUrl = `${env.APP_URL}/dashboard`;
 
   await sendEmail({
     to: user.email,
@@ -49,9 +50,11 @@ export async function sendMotivationEmailForUser(
       quote: copy.quote,
       quoteAuthor: copy.quoteAuthor,
       image,
-      upgradeUrl: `${env.APP_URL}/dashboard`,
+      upgradeUrl: manageUrl,
       showUpgrade,
+      manageUrl,
     }),
+    unsubscribeUrl: manageUrl,
   });
 
   await prisma.emailLog.create({

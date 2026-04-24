@@ -14,6 +14,7 @@ export const env = {
   PEXELS_API_KEY: () => required("PEXELS_API_KEY"),
   RESEND_API_KEY: () => required("RESEND_API_KEY"),
   RESEND_FROM: () => optional("RESEND_FROM", "KeepMyMotivation <noreply@keepmymotivation.com>"),
+  RESEND_REPLY_TO: () => optional("RESEND_REPLY_TO", "support@keepmymotivation.com"),
   LEMONSQUEEZY_WEBHOOK_SECRET: () => required("LEMONSQUEEZY_WEBHOOK_SECRET"),
   LEMONSQUEEZY_API_KEY: () => required("LEMONSQUEEZY_API_KEY"),
   LEMONSQUEEZY_CHECKOUT_BOOST: () => required("LEMONSQUEEZY_CHECKOUT_BOOST"),
