@@ -6,11 +6,39 @@ import Select from "@/components/Select";
 
 type Turn = { q: string; a: string };
 type Step = "goal" | "chat" | "time";
+type Plan = "SPARK" | "BOOST" | "DRIVE";
 
 type FinalAgent = {
   theme: string;
   imageKeyword: string;
   subjectHint: string;
+};
+
+const PLAN_INFO: Record<
+  Plan,
+  { name: string; tagline: string; price: string; period: string; features: string[] }
+> = {
+  SPARK: {
+    name: "Spark",
+    tagline: "Start the habit",
+    price: "Free",
+    period: "",
+    features: ["Monthly email", "1 goal", "No card required"],
+  },
+  BOOST: {
+    name: "Boost",
+    tagline: "Weekly rhythm",
+    price: "$1",
+    period: "/ month",
+    features: ["Monthly + weekly emails", "1 goal", "Cancel anytime"],
+  },
+  DRIVE: {
+    name: "Drive",
+    tagline: "Daily drive",
+    price: "$5",
+    period: "/ month",
+    features: ["Monthly + weekly + daily emails", "Up to 5 goals", "Cancel anytime"],
+  },
 };
 
 export default function HomeClient() {
@@ -290,24 +318,67 @@ export default function HomeClient() {
           <section>
             <h2 className="text-2xl font-bold mb-6 text-gradient">Plans</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <article className="plan-card">
-                <h3 className="font-semibold text-lg">Spark</h3>
-                <p className="text-[color:var(--muted)] text-sm mb-1">Monthly emails</p>
-                <p className="text-[color:var(--muted)] text-xs mb-3">1 goal · no card required</p>
-                <p className="text-2xl font-bold text-gradient">Free</p>
-              </article>
-              <article className="plan-card">
-                <h3 className="font-semibold text-lg">Boost</h3>
-                <p className="text-[color:var(--muted)] text-sm mb-1">Monthly + weekly emails</p>
-                <p className="text-[color:var(--muted)] text-xs mb-3">1 goal · cancel anytime</p>
-                <p className="text-2xl font-bold text-gradient">$1 / month</p>
-              </article>
-              <article className="plan-card">
-                <h3 className="font-semibold text-lg">Drive</h3>
-                <p className="text-[color:var(--muted)] text-sm mb-1">Monthly + weekly + daily emails</p>
-                <p className="text-[color:var(--muted)] text-xs mb-3">Up to 5 goals · cancel anytime</p>
-                <p className="text-2xl font-bold text-gradient">$5 / month</p>
-              </article>
+              {(Object.keys(PLAN_INFO) as Plan[]).map((p) => {
+                const pi = PLAN_INFO[p];
+                const featured = p === "DRIVE";
+                return (
+                  <article
+                    key={p}
+                    className={`plan-card flex flex-col h-full relative ${
+                      featured ? "ring-1 ring-[color:var(--accent)]/40" : ""
+                    }`}
+                  >
+                    {featured && (
+                      <span className="absolute top-3 right-3 text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full bg-[color:var(--accent)]/15 text-[color:var(--accent)]">
+                        Popular
+                      </span>
+                    )}
+
+                    <div className="mb-4">
+                      <p className="font-semibold text-lg">{pi.name}</p>
+                      <p className="text-[color:var(--muted)] text-xs">{pi.tagline}</p>
+                    </div>
+
+                    <div className="mb-5 flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-gradient">{pi.price}</span>
+                      {pi.period && (
+                        <span className="text-[color:var(--muted)] text-sm">{pi.period}</span>
+                      )}
+                    </div>
+
+                    <ul className="space-y-2 mb-6 text-sm">
+                      {pi.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2">
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mt-[3px] shrink-0 text-[color:var(--accent)]"
+                            aria-hidden="true"
+                          >
+                            <path d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-auto">
+                      <button
+                        onClick={() => router.push("/signup")}
+                        className="btn-3d w-full text-sm"
+                      >
+                        Choose {pi.name}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
 
