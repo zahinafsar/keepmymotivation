@@ -10,7 +10,7 @@ function optional(key: string, fallback = ""): string {
 
 export const env = {
   APP_URL: optional("APP_URL", "http://localhost:3000"),
-  OPENAI_API_KEY: () => required("OPENAI_API_KEY"),
+  GEMINI_API_KEY: () => required("GEMINI_API_KEY"),
   PEXELS_API_KEY: () => required("PEXELS_API_KEY"),
   RESEND_API_KEY: () => required("RESEND_API_KEY"),
   RESEND_FROM: () => optional("RESEND_FROM", "KeepMyMotivation <noreply@keepmymotivation.com>"),

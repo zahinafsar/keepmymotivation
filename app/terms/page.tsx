@@ -93,7 +93,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-white">8. Your Data</h2>
             <p>
               We store the goals and preferences you provide to generate and deliver your emails. We
-              use third-party providers (including OpenAI, Resend, Pexels, and Lemon Squeezy) to
+              use third-party providers (including Google Gemini, Resend, Pexels, and Lemon Squeezy) to
               operate the Service. You may request deletion of your account and associated data at
               any time by emailing us.
             </p>

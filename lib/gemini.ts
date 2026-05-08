@@ -1,13 +1,13 @@
-import OpenAI from "openai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { env } from "./env";
 
-let _client: OpenAI | null = null;
+let _client: GoogleGenAI | null = null;
 function client() {
-  if (!_client) _client = new OpenAI({ apiKey: env.OPENAI_API_KEY() });
+  if (!_client) _client = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY() });
   return _client;
 }
 
-const MODEL_ID = "gpt-4o-mini";
+const MODEL_ID = "gemini-2.5-flash";
 
 export type ClarifyTurn = { q: string; a: string };
 
@@ -42,21 +42,17 @@ Examples of final output:
 No markdown. No emojis.`;
 
 const CLARIFY_SCHEMA = {
-  name: "clarify_step",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      done: { type: "boolean" },
-      question: { type: "string" },
-      theme: { type: "string" },
-      imageKeyword: { type: "string" },
-      subjectHint: { type: "string" },
-    },
-    required: ["done", "question", "theme", "imageKeyword", "subjectHint"],
+  type: Type.OBJECT,
+  properties: {
+    done: { type: Type.BOOLEAN },
+    question: { type: Type.STRING },
+    theme: { type: Type.STRING },
+    imageKeyword: { type: Type.STRING },
+    subjectHint: { type: Type.STRING },
   },
-} as const;
+  required: ["done", "question", "theme", "imageKeyword", "subjectHint"],
+  propertyOrdering: ["done", "question", "theme", "imageKeyword", "subjectHint"],
+};
 
 export async function nextClarifyStep(
   goal: string,
@@ -74,16 +70,17 @@ ${historyText}
 
 ${mustFinalize ? "You MUST finalize now. Return done=true with theme, imageKeyword, subjectHint." : "If you can already pick a strong theme + image keyword, FINALIZE. Otherwise ask ONE short (<=10 words) question."}`;
 
-  const res = await client().chat.completions.create({
+  const res = await client().models.generateContent({
     model: MODEL_ID,
-    messages: [
-      { role: "system", content: CLARIFY_SYSTEM },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_schema", json_schema: CLARIFY_SCHEMA },
+    contents: userPrompt,
+    config: {
+      systemInstruction: CLARIFY_SYSTEM,
+      responseMimeType: "application/json",
+      responseSchema: CLARIFY_SCHEMA,
+    },
   });
 
-  const text = res.choices[0]?.message?.content ?? "{}";
+  const text = res.text ?? "{}";
   const parsed = JSON.parse(text) as {
     done: boolean;
     question: string;
@@ -120,21 +117,17 @@ const COPY_SYSTEM = `You write ultra-short, punchy motivational emails. Output s
 Absolutely no markdown, no emojis.`;
 
 const COPY_SCHEMA = {
-  name: "motivation_copy",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      subject: { type: "string" },
-      greeting: { type: "string" },
-      body: { type: "string" },
-      quote: { type: "string" },
-      quoteAuthor: { type: "string" },
-    },
-    required: ["subject", "greeting", "body", "quote", "quoteAuthor"],
+  type: Type.OBJECT,
+  properties: {
+    subject: { type: Type.STRING },
+    greeting: { type: Type.STRING },
+    body: { type: Type.STRING },
+    quote: { type: Type.STRING },
+    quoteAuthor: { type: Type.STRING },
   },
-} as const;
+  required: ["subject", "greeting", "body", "quote", "quoteAuthor"],
+  propertyOrdering: ["subject", "greeting", "body", "quote", "quoteAuthor"],
+};
 
 export async function generateMotivationCopy(input: {
   fullname: string;
@@ -153,15 +146,16 @@ Clarifying QA:
 ${qaText}
 This is email #${input.dayIndex} in their journey. Keep it fresh — avoid repeating phrasing common to day 1.`;
 
-  const res = await client().chat.completions.create({
+  const res = await client().models.generateContent({
     model: MODEL_ID,
-    messages: [
-      { role: "system", content: COPY_SYSTEM },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_schema", json_schema: COPY_SCHEMA },
+    contents: userPrompt,
+    config: {
+      systemInstruction: COPY_SYSTEM,
+      responseMimeType: "application/json",
+      responseSchema: COPY_SCHEMA,
+    },
   });
 
-  const text = res.choices[0]?.message?.content ?? "{}";
+  const text = res.text ?? "{}";
   return JSON.parse(text) as MotivationCopy;
 }
