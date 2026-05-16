@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
-import { sendMotivationEmailForUser } from "@/lib/email-dispatcher";
+import { sendScheduledEmailForUser } from "@/lib/email-dispatcher";
 import {
   PLAN_MAX_SCHEDULES,
   PLAN_ALLOWED_KINDS,
@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
   const users = await prisma.user.findMany({
     where: {
       subscription: { status: "ACTIVE" },
-      goals: { some: { active: true } },
+      schedules: { some: { active: true } },
     },
     include: {
       subscription: true,
-      goals: {
+      schedules: {
         where: { active: true },
         orderBy: { createdAt: "asc" },
       },
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const results: Array<{
     userId: string;
-    goalId: string;
+    scheduleId: string;
     sent: boolean;
     reason?: string;
   }> = [];
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (!user.subscription) continue;
     const plan = user.subscription.plan;
     const cap = PLAN_MAX_SCHEDULES[plan];
-    const activeGoals = user.goals.slice(0, cap);
+    const activeSchedules = user.schedules.slice(0, cap);
 
     let local: DateTime;
     try {
@@ -64,30 +64,30 @@ export async function POST(req: NextRequest) {
 
     const allowedKinds = PLAN_ALLOWED_KINDS[plan];
 
-    for (const goal of activeGoals) {
-      if (!allowedKinds.includes(goal.kind)) {
+    for (const schedule of activeSchedules) {
+      if (!allowedKinds.includes(schedule.kind)) {
         results.push({
           userId: user.id,
-          goalId: goal.id,
+          scheduleId: schedule.id,
           sent: false,
           reason: "kind-not-allowed-on-plan",
         });
         continue;
       }
-      if (!matchesSchedule(goal.kind, goal, localCtx)) {
-        results.push({ userId: user.id, goalId: goal.id, sent: false, reason: "no-match" });
+      if (!matchesSchedule(schedule.kind, schedule, localCtx)) {
+        results.push({ userId: user.id, scheduleId: schedule.id, sent: false, reason: "no-match" });
         continue;
       }
 
       const last = await prisma.emailLog.findFirst({
-        where: { goalId: goal.id },
+        where: { scheduleId: schedule.id },
         orderBy: { sentAt: "desc" },
         select: { sentAt: true },
       });
-      if (last && alreadySentThisPeriod(goal.kind, last.sentAt, user.timezone, now)) {
+      if (last && alreadySentThisPeriod(schedule.kind, last.sentAt, user.timezone, now)) {
         results.push({
           userId: user.id,
-          goalId: goal.id,
+          scheduleId: schedule.id,
           sent: false,
           reason: "already-sent-this-period",
         });
@@ -95,13 +95,13 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        await sendMotivationEmailForUser(user.id, { goalId: goal.id });
-        results.push({ userId: user.id, goalId: goal.id, sent: true });
+        await sendScheduledEmailForUser(user.id, { scheduleId: schedule.id });
+        results.push({ userId: user.id, scheduleId: schedule.id, sent: true });
       } catch (e) {
-        console.error("send failed", user.id, goal.id, e);
+        console.error("send failed", user.id, schedule.id, e);
         results.push({
           userId: user.id,
-          goalId: goal.id,
+          scheduleId: schedule.id,
           sent: false,
           reason: (e as Error).message,
         });

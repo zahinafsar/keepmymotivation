@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Onboarding = {
-  goal: string;
+  prompt: string;
   clarifyQA: Array<{ q: string; a: string }>;
-  theme: string;
+  brief: string;
   imageKeyword: string;
   subjectHint: string;
   sendHour: number;

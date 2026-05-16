@@ -16,35 +16,32 @@ const geistMono = Geist_Mono({
 const SITE_URL = process.env.APP_URL ?? "http://localhost:3000";
 const SITE_NAME = "KeepMyMotivation";
 const DESCRIPTION =
-  "Personalized motivational emails delivered daily, weekly, or monthly. Tell us your goal — we turn it into a motivational newsletter with AI-curated words and imagery to keep you on track.";
+  "Schedule any recurring email and let AI write it. Describe what you want — news recap, study drill, motivational nudge, recipe idea — delivered daily, weekly, or monthly in your timezone.";
 
 const KEYWORDS = [
+  "scheduled emails",
+  "recurring email",
+  "AI email",
+  "personal newsletter",
+  "automated emails",
+  "daily reminder",
+  "weekly digest",
+  "monthly summary",
+  "AI newsletter",
+  "personalized email",
+  "email automation",
+  "scheduled newsletter",
+  "habit reminders",
+  "study reminders",
   "motivational emails",
-  "daily motivation",
-  "motivation newsletter",
-  "auto motivation",
-  "goal tracking",
-  "habit motivation",
-  "self improvement emails",
-  "personal growth newsletter",
-  "motivational email subscription",
-  "inspirational emails",
-  "daily inspiration",
-  "AI motivation",
-  "personalized motivation",
-  "email reminder",
-  "motivation app",
-  "stay motivated",
-  "goal setting",
-  "fitness motivation",
-  "career motivation",
-  "habit building",
+  "daily learning email",
+  "AI inbox assistant",
 ];
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — personalized motivational emails on your schedule`,
+    default: `${SITE_NAME} — schedule any email, written by AI`,
     template: `%s · ${SITE_NAME}`,
   },
   description: DESCRIPTION,
@@ -73,12 +70,12 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — personalized motivational emails on your schedule`,
+    title: `${SITE_NAME} — schedule any email, written by AI`,
     description: DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — personalized motivational emails`,
+    title: `${SITE_NAME} — schedule any email, written by AI`,
     description: DESCRIPTION,
   },
   icons: {
@@ -131,21 +128,21 @@ const jsonLd = {
         {
           "@type": "Offer",
           name: "Spark",
-          description: "1 motivational email per month",
+          description: "1 scheduled email per month",
           price: "0",
           priceCurrency: "USD",
         },
         {
           "@type": "Offer",
           name: "Boost",
-          description: "1 motivational email per week",
+          description: "1 scheduled email per week",
           price: "1",
           priceCurrency: "USD",
         },
         {
           "@type": "Offer",
           name: "Drive",
-          description: "1 motivational email per day",
+          description: "Up to 5 scheduled emails per day",
           price: "5",
           priceCurrency: "USD",
         },
@@ -159,7 +156,7 @@ const jsonLd = {
           name: "What is KeepMyMotivation?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "KeepMyMotivation is a motivational email service that sends AI-personalized messages on your chosen schedule to help you stay on track with any goal.",
+            text: "KeepMyMotivation is a scheduled-email service. Describe any recurring email you want and AI writes and delivers it on a daily, weekly, or monthly cadence.",
           },
         },
         {
@@ -167,7 +164,7 @@ const jsonLd = {
           name: "How often will I receive emails?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Choose from three plans: Spark (free, monthly), Boost ($1/month, weekly), or Drive ($5/month, daily).",
+            text: "Choose from three plans: Spark (free, monthly), Boost ($1/month, weekly), or Drive ($5/month, daily, up to 5 schedules).",
           },
         },
         {
@@ -175,7 +172,7 @@ const jsonLd = {
           name: "Are the emails AI-generated?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Yes. We use AI to tailor each motivational email to your specific goal, preferred tone, and motivational angle, paired with relevant imagery.",
+            text: "Yes. Each email is generated from scratch against your prompt and brief, so it stays relevant across sends.",
           },
         },
       ],

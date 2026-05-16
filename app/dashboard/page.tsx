@@ -20,12 +20,12 @@ export default async function DashboardPage({
   if (!user) redirect("/login");
 
   const params = await searchParams;
-  const [lastEmail, goals] = await Promise.all([
+  const [lastEmail, schedules] = await Promise.all([
     prisma.emailLog.findFirst({
       where: { userId: user.id },
       orderBy: { sentAt: "desc" },
     }),
-    prisma.goal.findMany({
+    prisma.schedule.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "asc" },
     }),
@@ -47,14 +47,14 @@ export default async function DashboardPage({
             }
           : null
       }
-      goals={goals.map((g) => ({
-        id: g.id,
-        goalText: g.goalText,
-        kind: g.kind,
-        hour: g.hour,
-        dayOfWeek: g.dayOfWeek,
-        dayOfMonth: g.dayOfMonth,
-        active: g.active,
+      schedules={schedules.map((s) => ({
+        id: s.id,
+        prompt: s.prompt,
+        kind: s.kind,
+        hour: s.hour,
+        dayOfWeek: s.dayOfWeek,
+        dayOfMonth: s.dayOfMonth,
+        active: s.active,
       }))}
       lastEmailAt={lastEmail?.sentAt.toISOString() ?? null}
       welcome={params.welcome === "1"}

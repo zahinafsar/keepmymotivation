@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user.subscription) return NextResponse.json({ error: "No subscription" }, { status: 400 });
 
   const { id } = await params;
-  const existing = await prisma.goal.findUnique({ where: { id } });
+  const existing = await prisma.schedule.findUnique({ where: { id } });
   if (!existing || existing.userId !== user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -55,22 +55,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const wantActive = body.active === undefined ? existing.active : Boolean(body.active);
 
   if (wantActive && !existing.active) {
-    const activeCount = await prisma.goal.count({
+    const activeCount = await prisma.schedule.count({
       where: { userId: user.id, active: true },
     });
     if (activeCount >= cap) {
       return NextResponse.json(
-        { error: `Plan ${plan} allows ${cap} active goal(s). Deactivate another first.` },
+        { error: `Plan ${plan} allows ${cap} active schedule(s). Deactivate another first.` },
         { status: 403 }
       );
     }
   }
 
-  const updated = await prisma.goal.update({
+  const updated = await prisma.schedule.update({
     where: { id },
     data: { kind, hour, dayOfWeek, dayOfMonth, active: wantActive },
   });
-  return NextResponse.json({ goal: updated });
+  return NextResponse.json({ schedule: updated });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -78,11 +78,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const existing = await prisma.goal.findUnique({ where: { id } });
+  const existing = await prisma.schedule.findUnique({ where: { id } });
   if (!existing || existing.userId !== user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await prisma.goal.delete({ where: { id } });
+  await prisma.schedule.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

@@ -1,41 +1,43 @@
 import { prisma } from "./prisma";
 import { sendEmail } from "./resend";
 import { searchPexels } from "./stock";
-import { generateMotivationCopy, type ClarifyTurn } from "./gemini";
-import MotivationEmail from "../emails/MotivationEmail";
+import { generateScheduledEmailCopy, type ClarifyTurn } from "./gemini";
+import ScheduledEmail from "../emails/ScheduledEmail";
 import { env } from "./env";
 
-export async function sendMotivationEmailForUser(
+export async function sendScheduledEmailForUser(
   userId: string,
-  opts: { preview?: boolean; goalId?: string } = {}
+  opts: { preview?: boolean; scheduleId?: string } = {}
 ) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
       subscription: true,
-      goals: { orderBy: { createdAt: "asc" } },
+      schedules: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!user || !user.subscription) throw new Error("User/sub missing");
 
-  const goal = opts.goalId
-    ? user.goals.find((g) => g.id === opts.goalId)
-    : user.goals[0];
-  if (!goal) throw new Error("Goal missing");
+  const schedule = opts.scheduleId
+    ? user.schedules.find((s) => s.id === opts.scheduleId)
+    : user.schedules[0];
+  if (!schedule) throw new Error("Schedule missing");
 
   const dayIndex =
-    (await prisma.emailLog.count({ where: { goalId: goal.id } })) + 1;
+    (await prisma.emailLog.count({ where: { scheduleId: schedule.id } })) + 1;
 
   const [copy, image] = await Promise.all([
-    generateMotivationCopy({
+    generateScheduledEmailCopy({
       fullname: user.fullname,
-      goal: goal.goalText,
-      clarifyQA: goal.clarifyQA as unknown as ClarifyTurn[],
-      theme: goal.theme,
-      subjectHint: goal.subjectHint,
+      prompt: schedule.prompt,
+      clarifyQA: schedule.clarifyQA as unknown as ClarifyTurn[],
+      brief: schedule.brief,
+      subjectHint: schedule.subjectHint,
       dayIndex,
     }),
-    searchPexels(goal.imageKeyword).catch(() => null),
+    schedule.imageKeyword
+      ? searchPexels(schedule.imageKeyword).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   const showUpgrade = user.subscription.plan === "SPARK";
@@ -44,11 +46,9 @@ export async function sendMotivationEmailForUser(
   await sendEmail({
     to: user.email,
     subject: copy.subject,
-    react: MotivationEmail({
-      greeting: copy.greeting,
-      body: copy.body,
-      quote: copy.quote,
-      quoteAuthor: copy.quoteAuthor,
+    react: ScheduledEmail({
+      preview: copy.preview,
+      markdown: copy.markdown,
       image,
       upgradeUrl: manageUrl,
       showUpgrade,
@@ -60,9 +60,9 @@ export async function sendMotivationEmailForUser(
   await prisma.emailLog.create({
     data: {
       userId,
-      goalId: goal.id,
+      scheduleId: schedule.id,
       subject: copy.subject,
-      body: copy.body,
+      body: copy.markdown,
       imageUrl: image?.url ?? null,
       plan: user.subscription.plan,
       preview: opts.preview ?? false,

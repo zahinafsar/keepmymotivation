@@ -7,10 +7,10 @@ import type { ScheduleKind } from "@prisma/client";
 export const runtime = "nodejs";
 
 type CreateBody = {
-  goal: string;
+  prompt: string;
   clarifyQA: Array<{ q: string; a: string }>;
-  theme: string;
-  imageKeyword: string;
+  brief: string;
+  imageKeyword?: string | null;
   subjectHint: string;
   kind: ScheduleKind;
   hour: number;
@@ -22,13 +22,13 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const goals = await prisma.goal.findMany({
+  const schedules = await prisma.schedule.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "asc" },
   });
   const plan = user.subscription?.plan ?? "SPARK";
   return NextResponse.json({
-    goals,
+    schedules,
     plan,
     allowedKinds: PLAN_ALLOWED_KINDS[plan],
     max: PLAN_MAX_SCHEDULES[plan],
@@ -44,18 +44,18 @@ export async function POST(req: NextRequest) {
   const allowed = PLAN_ALLOWED_KINDS[plan];
   const cap = PLAN_MAX_SCHEDULES[plan];
 
-  const activeCount = await prisma.goal.count({
+  const activeCount = await prisma.schedule.count({
     where: { userId: user.id, active: true },
   });
   if (activeCount >= cap) {
     return NextResponse.json(
-      { error: `Plan ${plan} allows ${cap} active goal(s). Deactivate or delete one first.` },
+      { error: `Plan ${plan} allows ${cap} active schedule(s). Deactivate or delete one first.` },
       { status: 403 }
     );
   }
 
   const b = (await req.json().catch(() => null)) as CreateBody | null;
-  if (!b || !b.goal || !b.theme || !b.imageKeyword || !b.subjectHint) {
+  if (!b || !b.prompt || !b.brief || !b.subjectHint) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
   if (typeof b.hour !== "number" || b.hour < 0 || b.hour > 23) {
@@ -82,13 +82,15 @@ export async function POST(req: NextRequest) {
     dayOfMonth = b.dayOfMonth;
   }
 
-  const created = await prisma.goal.create({
+  const imageKeyword = b.imageKeyword?.trim() ? b.imageKeyword.trim() : null;
+
+  const created = await prisma.schedule.create({
     data: {
       userId: user.id,
-      goalText: b.goal,
+      prompt: b.prompt,
       clarifyQA: b.clarifyQA ?? [],
-      theme: b.theme,
-      imageKeyword: b.imageKeyword,
+      brief: b.brief,
+      imageKeyword,
       subjectHint: b.subjectHint,
       kind: b.kind,
       hour: b.hour,
@@ -96,5 +98,5 @@ export async function POST(req: NextRequest) {
       dayOfMonth,
     },
   });
-  return NextResponse.json({ goal: created }, { status: 201 });
+  return NextResponse.json({ schedule: created }, { status: 201 });
 }

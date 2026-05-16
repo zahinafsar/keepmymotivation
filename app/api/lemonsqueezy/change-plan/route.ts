@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });
   }
 
-  // Optimistic local deactivation of invalid-kind goals. Webhook will confirm.
+  // Optimistic local deactivation of invalid-kind schedules. Webhook will confirm.
   const allowed = PLAN_ALLOWED_KINDS[target];
-  await prisma.goal.updateMany({
+  await prisma.schedule.updateMany({
     where: { userId: user.id, kind: { notIn: allowed } },
     data: { active: false },
   });

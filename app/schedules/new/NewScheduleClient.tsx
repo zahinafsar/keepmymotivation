@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import Select from "@/components/Select";
 
 type Turn = { q: string; a: string };
-type Step = "goal" | "chat" | "time";
+type Step = "prompt" | "chat" | "time";
 type Kind = "DAILY" | "WEEKLY" | "MONTHLY";
 
 type FinalAgent = {
-  theme: string;
+  brief: string;
   imageKeyword: string;
   subjectHint: string;
 };
@@ -28,7 +28,7 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-export default function NewGoalClient({
+export default function NewScheduleClient({
   allowedKinds,
   timezone,
 }: {
@@ -36,8 +36,8 @@ export default function NewGoalClient({
   timezone: string;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("goal");
-  const [goal, setGoal] = useState("");
+  const [step, setStep] = useState<Step>("prompt");
+  const [prompt, setPrompt] = useState("");
   const [history, setHistory] = useState<Turn[]>([]);
   const [currentQ, setCurrentQ] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
@@ -72,13 +72,13 @@ export default function NewGoalClient({
       const res = await fetch("/api/agent/clarify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ goal, history: nextHistory }),
+        body: JSON.stringify({ prompt, history: nextHistory }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Agent failed");
       if (data.done) {
         setFinal({
-          theme: data.theme,
+          brief: data.brief,
           imageKeyword: data.imageKeyword,
           subjectHint: data.subjectHint,
         });
@@ -94,10 +94,10 @@ export default function NewGoalClient({
     }
   }
 
-  async function submitGoal(e: React.FormEvent) {
+  async function submitPrompt(e: React.FormEvent) {
     e.preventDefault();
-    if (goal.trim().length < 4) {
-      setError("Tell us a bit more about your goal.");
+    if (prompt.trim().length < 4) {
+      setError("Tell us a bit more about what you want emailed.");
       return;
     }
     setStep("chat");
@@ -120,10 +120,10 @@ export default function NewGoalClient({
     setError(null);
     try {
       const payload: Record<string, unknown> = {
-        goal,
+        prompt,
         clarifyQA: history,
-        theme: final.theme,
-        imageKeyword: final.imageKeyword,
+        brief: final.brief,
+        imageKeyword: final.imageKeyword || null,
         subjectHint: final.subjectHint,
         kind,
         hour,
@@ -131,7 +131,7 @@ export default function NewGoalClient({
       if (kind === "WEEKLY") payload.dayOfWeek = dayOfWeek;
       if (kind === "MONTHLY") payload.dayOfMonth = dayOfMonth;
 
-      const res = await fetch("/api/goals", {
+      const res = await fetch("/api/schedules", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
@@ -167,19 +167,19 @@ export default function NewGoalClient({
         <section className="flex-1 flex flex-col items-center justify-center px-6 py-12">
           <div className="w-full max-w-xl">
             <h1 className="text-4xl sm:text-5xl font-bold leading-[1.05] text-center mb-4 fade-up text-gradient">
-              Add a new goal
+              New scheduled email
             </h1>
             <p className="text-center text-[color:var(--muted)] mb-10 fade-up delay-100">
-              Tell us what you want to become. We&apos;ll tune the emails to it.
+              Tell us what you want to receive. We&apos;ll send it on your schedule.
             </p>
 
-            {step === "goal" && (
-              <form onSubmit={submitGoal} className="space-y-4 fade-up delay-200">
+            {step === "prompt" && (
+              <form onSubmit={submitPrompt} className="space-y-4 fade-up delay-200">
                 <div className="glass p-2">
                   <textarea
-                    value={goal}
-                    onChange={(e) => setGoal(e.target.value)}
-                    placeholder="I want to read 20 books this year"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="e.g. Weekly recap of NBA scores, a daily SQL interview question, a monthly book summary"
                     className="w-full bg-transparent p-4 text-base outline-none resize-none placeholder:text-white/30"
                     rows={3}
                   />
@@ -195,9 +195,9 @@ export default function NewGoalClient({
               <div className="space-y-4">
                 <div className="glass p-5 fade-up">
                   <p className="text-xs uppercase tracking-wider text-[color:var(--muted)] mb-2">
-                    Your goal
+                    Your prompt
                   </p>
-                  <p>{goal}</p>
+                  <p>{prompt}</p>
                 </div>
 
                 {history.map((t, i) => (
@@ -265,8 +265,8 @@ export default function NewGoalClient({
             {step === "time" && final && (
               <div className="space-y-6 fade-up">
                 <div className="glass glass-hover p-6">
-                  <p className="text-sm text-[color:var(--muted)] mb-1">Motivational angle</p>
-                  <p className="font-semibold text-lg capitalize text-gradient">{final.theme}</p>
+                  <p className="text-sm text-[color:var(--muted)] mb-2">What we&apos;ll send</p>
+                  <p className="text-[15px] leading-relaxed">{final.brief}</p>
                 </div>
 
                 <div>
@@ -328,7 +328,7 @@ export default function NewGoalClient({
 
                 {error && <p className="text-red-400 text-sm">{error}</p>}
                 <button onClick={save} disabled={saving} className="btn-3d w-full">
-                  {saving ? "Saving…" : "Save goal"}
+                  {saving ? "Saving…" : "Save schedule"}
                 </button>
               </div>
             )}

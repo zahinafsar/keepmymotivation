@@ -8,9 +8,9 @@ import AnalogClock from "@/components/AnalogClock";
 type Plan = "SPARK" | "BOOST" | "DRIVE";
 type Kind = "DAILY" | "WEEKLY" | "MONTHLY";
 
-type Goal = {
+type Schedule = {
   id: string;
-  goalText: string;
+  prompt: string;
   kind: Kind;
   hour: number;
   dayOfWeek: number | null;
@@ -21,7 +21,7 @@ type Goal = {
 type Props = {
   user: { fullname: string; email: string; timezone: string };
   subscription: { plan: Plan; status: string; currentPeriodEnd: string | null } | null;
-  goals: Goal[];
+  schedules: Schedule[];
   lastEmailAt: string | null;
   welcome: boolean;
   upgraded: boolean;
@@ -36,7 +36,7 @@ const PLAN_INFO: Record<
     tagline: "Start the habit",
     price: "Free",
     period: "",
-    features: ["Monthly email", "1 goal", "No card required"],
+    features: ["Monthly email", "1 schedule", "No card required"],
     max: 1,
   },
   BOOST: {
@@ -44,7 +44,7 @@ const PLAN_INFO: Record<
     tagline: "Weekly rhythm",
     price: "$1",
     period: "/ month",
-    features: ["Monthly + weekly emails", "1 goal", "Cancel anytime"],
+    features: ["Monthly + weekly emails", "1 schedule", "Cancel anytime"],
     max: 1,
   },
   DRIVE: {
@@ -52,7 +52,7 @@ const PLAN_INFO: Record<
     tagline: "Daily drive",
     price: "$5",
     period: "/ month",
-    features: ["Monthly + weekly + daily emails", "Up to 5 goals", "Cancel anytime"],
+    features: ["Monthly + weekly + daily emails", "Up to 5 schedules", "Cancel anytime"],
     max: 5,
   },
 };
@@ -85,21 +85,21 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function describeSchedule(g: Goal): string {
-  if (g.kind === "DAILY") return `Daily at ${formatHour(g.hour)}`;
-  if (g.kind === "WEEKLY") {
-    const d = g.dayOfWeek ?? 0;
-    return `Every ${WEEKDAYS[d]} at ${formatHour(g.hour)}`;
+function describeSchedule(s: Schedule): string {
+  if (s.kind === "DAILY") return `Daily at ${formatHour(s.hour)}`;
+  if (s.kind === "WEEKLY") {
+    const d = s.dayOfWeek ?? 0;
+    return `Every ${WEEKDAYS[d]} at ${formatHour(s.hour)}`;
   }
-  const d = g.dayOfMonth ?? 1;
-  return `Monthly on the ${ordinal(d)} at ${formatHour(g.hour)}`;
+  const d = s.dayOfMonth ?? 1;
+  return `Monthly on the ${ordinal(d)} at ${formatHour(s.hour)}`;
 }
 
 export default function DashboardClient(props: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
-  const [goals, setGoals] = useState<Goal[]>(props.goals);
-  const [editing, setEditing] = useState<Goal | null>(null);
+  const [schedules, setSchedules] = useState<Schedule[]>(props.schedules);
+  const [editing, setEditing] = useState<Schedule | null>(null);
   const [planAction, setPlanAction] = useState<{
     target: Plan;
     label: "Cancel" | "Downgrade" | "Upgrade";
@@ -108,8 +108,8 @@ export default function DashboardClient(props: Props) {
   const plan = props.subscription?.plan ?? "SPARK";
   const info = PLAN_INFO[plan];
   const allowedKinds = PLAN_ALLOWED[plan];
-  const activeGoals = goals.filter((g) => g.active);
-  const activeCount = activeGoals.length;
+  const activeSchedules = schedules.filter((s) => s.active);
+  const activeCount = activeSchedules.length;
 
   async function upgrade(target: Exclude<Plan, "SPARK">) {
     setBusy("upgrade");
@@ -147,36 +147,36 @@ export default function DashboardClient(props: Props) {
     }
   }
 
-  async function deleteGoal(id: string) {
-    if (!confirm("Delete this goal?")) return;
-    const r = await fetch(`/api/goals/${id}`, { method: "DELETE" });
+  async function deleteSchedule(id: string) {
+    if (!confirm("Delete this schedule?")) return;
+    const r = await fetch(`/api/schedules/${id}`, { method: "DELETE" });
     if (!r.ok) {
       const d = await r.json().catch(() => ({}));
       alert(d.error ?? "Failed");
       return;
     }
-    setGoals((prev) => prev.filter((g) => g.id !== id));
+    setSchedules((prev) => prev.filter((s) => s.id !== id));
   }
 
-  async function setActive(goal: Goal, active: boolean) {
-    setBusy(goal.id);
+  async function setActive(schedule: Schedule, active: boolean) {
+    setBusy(schedule.id);
     try {
       const payload: Record<string, unknown> = {
         active,
-        kind: goal.kind,
-        hour: goal.hour,
+        kind: schedule.kind,
+        hour: schedule.hour,
       };
-      if (goal.kind === "WEEKLY") payload.dayOfWeek = goal.dayOfWeek;
-      if (goal.kind === "MONTHLY") payload.dayOfMonth = goal.dayOfMonth;
+      if (schedule.kind === "WEEKLY") payload.dayOfWeek = schedule.dayOfWeek;
+      if (schedule.kind === "MONTHLY") payload.dayOfMonth = schedule.dayOfMonth;
 
-      const r = await fetch(`/api/goals/${goal.id}`, {
+      const r = await fetch(`/api/schedules/${schedule.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "Failed");
-      setGoals((prev) => prev.map((g) => (g.id === goal.id ? { ...g, ...data.goal } : g)));
+      setSchedules((prev) => prev.map((s) => (s.id === schedule.id ? { ...s, ...data.schedule } : s)));
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -246,7 +246,7 @@ export default function DashboardClient(props: Props) {
           <div className="alert-soft mb-8 fade-up delay-100">
             {props.welcome && (
               <p>
-                You&apos;re in, {props.user.fullname.split(" ")[0]}. Your first motivational email
+                You&apos;re in, {props.user.fullname.split(" ")[0]}. Your first scheduled email
                 is on its way — check your inbox.
               </p>
             )}
@@ -261,7 +261,7 @@ export default function DashboardClient(props: Props) {
             </p>
             <p className="text-lg font-semibold text-gradient">{info.name}</p>
             <p className="text-sm text-[color:var(--muted)]">
-              {info.features[0]} · {activeCount}/{info.max} active goals
+              {info.features[0]} · {activeCount}/{info.max} active schedules
             </p>
             <p className="text-xs text-[color:var(--muted)] mt-3">
               Timezone: {props.user.timezone}
@@ -280,43 +280,43 @@ export default function DashboardClient(props: Props) {
         <section className="fade-up delay-200 mb-12">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
-              Goals <span className="text-[color:var(--muted)] text-sm font-normal">({activeCount}/{info.max} active)</span>
+              Schedules <span className="text-[color:var(--muted)] text-sm font-normal">({activeCount}/{info.max} active)</span>
             </h2>
             <button
-              onClick={() => router.push("/goals/new")}
+              onClick={() => router.push("/schedules/new")}
               disabled={activeCount >= info.max}
               className="btn-3d text-sm py-2 px-4 disabled:opacity-50"
             >
-              + Add goal
+              + Add schedule
             </button>
           </div>
 
           <div className="grid gap-3">
-            {goals.map((g) => {
-              const kindBlocked = !allowedKinds.includes(g.kind);
+            {schedules.map((s) => {
+              const kindBlocked = !allowedKinds.includes(s.kind);
               return (
-                <div key={g.id} className="glass p-4 flex items-center justify-between gap-3">
+                <div key={s.id} className="glass p-4 flex items-center justify-between overflow-hidden gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium truncate">{g.goalText}</p>
-                      {!g.active && (
+                      <p className="font-medium truncate">{s.prompt}</p>
+                      {!s.active && (
                         <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-[color:var(--muted)] shrink-0">
                           Inactive
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-[color:var(--muted)]">{describeSchedule(g)}</p>
+                    <p className="text-sm text-[color:var(--muted)]">{describeSchedule(s)}</p>
                     {kindBlocked && (
                       <p className="text-xs text-[color:var(--muted)] mt-1">
-                        {KIND_LABEL[g.kind]} not available on {info.name}. Edit to change frequency.
+                        {KIND_LABEL[s.kind]} not available on {info.name}. Edit to change frequency.
                       </p>
                     )}
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    {g.active ? (
+                    {s.active ? (
                       <button
-                        onClick={() => setActive(g, false)}
-                        disabled={busy === g.id}
+                        onClick={() => setActive(s, false)}
+                        disabled={busy === s.id}
                         className="btn-ghost text-xs py-1 px-3"
                       >
                         Deactivate
@@ -324,27 +324,27 @@ export default function DashboardClient(props: Props) {
                     ) : (
                       <button
                         onClick={() => {
-                          if (kindBlocked) setEditing(g);
-                          else setActive(g, true);
+                          if (kindBlocked) setEditing(s);
+                          else setActive(s, true);
                         }}
-                        disabled={busy === g.id}
+                        disabled={busy === s.id}
                         className="btn-ghost text-xs py-1 px-3"
                       >
                         Activate
                       </button>
                     )}
-                    <button onClick={() => setEditing(g)} className="btn-ghost text-xs py-1 px-3">
+                    <button onClick={() => setEditing(s)} className="btn-ghost text-xs py-1 px-3">
                       Edit
                     </button>
-                    <button onClick={() => deleteGoal(g.id)} className="btn-ghost text-xs py-1 px-3">
+                    <button onClick={() => deleteSchedule(s.id)} className="btn-ghost text-xs py-1 px-3">
                       Delete
                     </button>
                   </div>
                 </div>
               );
             })}
-            {goals.length === 0 && (
-              <p className="text-[color:var(--muted)] text-sm">No goals yet. Add one to start receiving emails.</p>
+            {schedules.length === 0 && (
+              <p className="text-[color:var(--muted)] text-sm">No schedules yet. Add one to start receiving emails.</p>
             )}
           </div>
         </section>
@@ -428,8 +428,8 @@ export default function DashboardClient(props: Props) {
           allowedKinds={allowedKinds}
           initial={editing}
           onClose={() => setEditing(null)}
-          onSaved={(g) => {
-            setGoals((prev) => prev.map((x) => (x.id === g.id ? { ...x, ...g } : x)));
+          onSaved={(s) => {
+            setSchedules((prev) => prev.map((x) => (x.id === s.id ? { ...x, ...s } : x)));
             setEditing(null);
           }}
         />
@@ -438,7 +438,7 @@ export default function DashboardClient(props: Props) {
       {planAction && (
         <PlanChangeModal
           action={planAction}
-          goals={goals}
+          schedules={schedules}
           onClose={() => setPlanAction(null)}
           onConfirm={() => changePlan(planAction.target)}
           busy={busy !== null}
@@ -450,19 +450,19 @@ export default function DashboardClient(props: Props) {
 
 function PlanChangeModal({
   action,
-  goals,
+  schedules,
   onClose,
   onConfirm,
   busy,
 }: {
   action: { target: Plan; label: "Cancel" | "Downgrade" | "Upgrade" };
-  goals: Goal[];
+  schedules: Schedule[];
   onClose: () => void;
   onConfirm: () => void;
   busy: boolean;
 }) {
   const targetAllowed = PLAN_ALLOWED[action.target];
-  const affected = goals.filter((g) => g.active && !targetAllowed.includes(g.kind));
+  const affected = schedules.filter((s) => s.active && !targetAllowed.includes(s.kind));
   const targetName = PLAN_INFO[action.target].name;
 
   return (
@@ -490,13 +490,13 @@ function PlanChangeModal({
 
         {affected.length > 0 && (
           <div className="alert-soft mb-4" style={{ borderColor: "rgba(239,68,68,.3)" }}>
-            <p className="font-medium mb-2">These goals will be deactivated:</p>
+            <p className="font-medium mb-2">These schedules will be deactivated:</p>
             <ul className="text-sm space-y-1">
-              {affected.map((g) => (
-                <li key={g.id}>
-                  • <span className="font-medium">{g.goalText}</span>{" "}
+              {affected.map((s) => (
+                <li key={s.id}>
+                  • <span className="font-medium">{s.prompt}</span>{" "}
                   <span className="text-[color:var(--muted)]">
-                    ({KIND_LABEL[g.kind]} not allowed on {targetName})
+                    ({KIND_LABEL[s.kind]} not allowed on {targetName})
                   </span>
                 </li>
               ))}
@@ -531,9 +531,9 @@ function ScheduleForm({
   onSaved,
 }: {
   allowedKinds: Kind[];
-  initial: Goal;
+  initial: Schedule;
   onClose: () => void;
-  onSaved: (g: Goal) => void;
+  onSaved: (s: Schedule) => void;
 }) {
   const startKind = allowedKinds.includes(initial.kind) ? initial.kind : allowedKinds[0];
   const [kind, setKind] = useState<Kind>(startKind);
@@ -549,14 +549,14 @@ function ScheduleForm({
       if (kind === "WEEKLY") payload.dayOfWeek = dayOfWeek;
       if (kind === "MONTHLY") payload.dayOfMonth = dayOfMonth;
 
-      const r = await fetch(`/api/goals/${initial.id}`, {
+      const r = await fetch(`/api/schedules/${initial.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "Failed");
-      onSaved(data.goal);
+      onSaved(data.schedule);
     } catch (e) {
       alert((e as Error).message);
       setSaving(false);
@@ -567,7 +567,7 @@ function ScheduleForm({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="glass p-6 max-w-md w-full">
         <h3 className="text-lg font-semibold mb-1">Edit schedule</h3>
-        <p className="text-sm text-[color:var(--muted)] mb-4 truncate">{initial.goalText}</p>
+        <p className="text-sm text-[color:var(--muted)] mb-4 truncate">{initial.prompt}</p>
 
         <div className="mb-4">
           <label className="block text-sm mb-2">Frequency</label>

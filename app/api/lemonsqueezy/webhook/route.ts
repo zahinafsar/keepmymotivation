@@ -55,9 +55,9 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Deactivate goals whose kind is not allowed under the new plan.
+        // Deactivate schedules whose kind is not allowed under the new plan.
         const allowed = PLAN_ALLOWED_KINDS[effectivePlan];
-        await prisma.goal.updateMany({
+        await prisma.schedule.updateMany({
           where: { userId, kind: { notIn: allowed }, active: true },
           data: { active: false },
         });

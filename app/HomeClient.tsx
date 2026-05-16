@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import Select from "@/components/Select";
 
 type Turn = { q: string; a: string };
-type Step = "goal" | "chat" | "time";
+type Step = "prompt" | "chat" | "time";
 type Plan = "SPARK" | "BOOST" | "DRIVE";
 
 type FinalAgent = {
-  theme: string;
+  brief: string;
   imageKeyword: string;
   subjectHint: string;
 };
@@ -20,31 +20,31 @@ const PLAN_INFO: Record<
 > = {
   SPARK: {
     name: "Spark",
-    tagline: "Start the habit",
+    tagline: "Try the habit",
     price: "Free",
     period: "",
-    features: ["Monthly email", "1 goal", "No card required"],
+    features: ["Monthly email", "1 schedule", "No card required"],
   },
   BOOST: {
     name: "Boost",
     tagline: "Weekly rhythm",
     price: "$1",
     period: "/ month",
-    features: ["Monthly + weekly emails", "1 goal", "Cancel anytime"],
+    features: ["Monthly + weekly emails", "1 schedule", "Cancel anytime"],
   },
   DRIVE: {
     name: "Drive",
     tagline: "Daily drive",
     price: "$5",
     period: "/ month",
-    features: ["Monthly + weekly + daily emails", "Up to 5 goals", "Cancel anytime"],
+    features: ["Monthly + weekly + daily emails", "Up to 5 schedules", "Cancel anytime"],
   },
 };
 
 export default function HomeClient() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("goal");
-  const [goal, setGoal] = useState("");
+  const [step, setStep] = useState<Step>("prompt");
+  const [prompt, setPrompt] = useState("");
   const [history, setHistory] = useState<Turn[]>([]);
   const [currentQ, setCurrentQ] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
@@ -75,13 +75,13 @@ export default function HomeClient() {
       const res = await fetch("/api/agent/clarify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ goal, history: nextHistory }),
+        body: JSON.stringify({ prompt, history: nextHistory }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Agent failed");
       if (data.done) {
         setFinal({
-          theme: data.theme,
+          brief: data.brief,
           imageKeyword: data.imageKeyword,
           subjectHint: data.subjectHint,
         });
@@ -97,10 +97,10 @@ export default function HomeClient() {
     }
   }
 
-  async function submitGoal(e: React.FormEvent) {
+  async function submitPrompt(e: React.FormEvent) {
     e.preventDefault();
-    if (goal.trim().length < 4) {
-      setError("Tell us a bit more about your goal.");
+    if (prompt.trim().length < 4) {
+      setError("Tell us a bit more about what you want emailed.");
       return;
     }
     setStep("chat");
@@ -120,9 +120,9 @@ export default function HomeClient() {
   function goToSignup() {
     if (!final) return;
     const payload = {
-      goal,
+      prompt,
       clarifyQA: history,
-      theme: final.theme,
+      brief: final.brief,
       imageKeyword: final.imageKeyword,
       subjectHint: final.subjectHint,
       sendHour,
@@ -153,20 +153,19 @@ export default function HomeClient() {
 
         <section className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-xl">
-          <h1 className="text-4xl sm:text-5xl font-bold leading-[1.05] text-center mb-4 fade-up text-gradient">
-            What do you want to become?
+          <h1 className="text-3xl sm:text-4xl font-bold leading-[1.15] text-center text-balance mb-10 fade-up text-gradient mx-auto">
+            Ask what you need.
+            <br />
+            Let AI decide how to deliver.
           </h1>
-          <p className="text-center text-[color:var(--muted)] mb-10 fade-up delay-100">
-            One goal. A motivational email on your schedule. Words + imagery tuned to what actually moves you.
-          </p>
 
-          {step === "goal" && (
-            <form onSubmit={submitGoal} className="space-y-4 fade-up delay-200">
+          {step === "prompt" && (
+            <form onSubmit={submitPrompt} className="space-y-4 fade-up delay-200">
               <div className="glass p-2">
                 <textarea
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                  placeholder="I want to go to gym regularly"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Weekly NBA recap. Daily SQL drill. Morning nudge. Anything…"
                   className="w-full bg-transparent p-4 text-base outline-none resize-none placeholder:text-white/30"
                   rows={3}
                 />
@@ -182,9 +181,9 @@ export default function HomeClient() {
             <div className="space-y-4">
               <div className="glass p-5 fade-up">
                 <p className="text-xs uppercase tracking-wider text-[color:var(--muted)] mb-2">
-                  Your goal
+                  Your prompt
                 </p>
-                <p>{goal}</p>
+                <p>{prompt}</p>
               </div>
 
               {history.map((t, i) => (
@@ -252,8 +251,8 @@ export default function HomeClient() {
           {step === "time" && final && (
             <div className="space-y-6 fade-up">
               <div className="glass glass-hover p-6">
-                <p className="text-sm text-[color:var(--muted)] mb-1">Motivational angle</p>
-                <p className="font-semibold text-lg capitalize text-gradient">{final.theme}</p>
+                <p className="text-sm text-[color:var(--muted)] mb-2">What we&apos;ll send</p>
+                <p className="text-[15px] leading-relaxed">{final.brief}</p>
               </div>
               <div>
                 <label className="block text-sm text-[color:var(--muted)] mb-2">
@@ -278,38 +277,36 @@ export default function HomeClient() {
       </section>
       </div>
 
-      {step === "goal" && (
+      {step === "prompt" && (
         <aside className="relative z-10 max-w-5xl w-full mx-auto px-6 py-16 space-y-16">
           <section>
             <h2 className="text-2xl font-bold mb-2 text-gradient">
-              A motivational newsletter built around your goal
+              Any email. On your schedule. Written by AI.
             </h2>
             <p className="text-[color:var(--muted)] max-w-2xl mb-8">
-              KeepMyMotivation is an AI-powered motivational email service. Tell us what you
-              want to become — get started with fitness, career, study, or habit goals — and
-              we send personalized motivation on your schedule. Think of it as auto-motivation
-              on autopilot.
+              KeepMyMotivation turns one prompt into a recurring email. News recaps, study reminders,
+              recipe ideas, motivational nudges, prayer prompts, daily challenges — if you can
+              describe it, we can send it daily, weekly, or monthly.
             </p>
             <div className="grid gap-4 sm:grid-cols-3">
               <article className="glass p-5">
-                <h3 className="font-semibold mb-2">Personalized emails</h3>
+                <h3 className="font-semibold mb-2">Describe it once</h3>
                 <p className="text-sm text-[color:var(--muted)]">
-                  Every motivational email is tailored to your goal, tone, and the motivational
-                  angle that actually moves you.
+                  Tell the AI what you want emailed. It asks at most two questions to lock in tone
+                  and scope.
                 </p>
               </article>
               <article className="glass p-5">
                 <h3 className="font-semibold mb-2">Your schedule</h3>
                 <p className="text-sm text-[color:var(--muted)]">
-                  Pick the time of day. Receive daily motivation, a weekly boost, or a monthly
-                  spark — all in your timezone.
+                  Pick daily, weekly, or monthly, plus the hour of day — delivered in your timezone.
                 </p>
               </article>
               <article className="glass p-5">
-                <h3 className="font-semibold mb-2">Imagery + words</h3>
+                <h3 className="font-semibold mb-2">Fresh every send</h3>
                 <p className="text-sm text-[color:var(--muted)]">
-                  Each inspirational email pairs AI-crafted copy with relevant imagery to make
-                  motivation stick.
+                  Each email is generated from scratch against your brief, so it stays relevant
+                  instead of repeating.
                 </p>
               </article>
             </div>
@@ -390,29 +387,29 @@ export default function HomeClient() {
                   What is KeepMyMotivation?
                 </summary>
                 <p className="mt-3 text-[color:var(--muted)]">
-                  A motivational email subscription. Share your goal, and we deliver
-                  AI-personalized motivational emails — daily, weekly, or monthly — to help
-                  you stay on track.
+                  A scheduled-email service. You describe what you want sent — anything from news
+                  recaps to study reminders to motivational nudges — and AI writes and delivers it
+                  on a daily, weekly, or monthly cadence.
                 </p>
               </details>
               <details className="glass p-5">
                 <summary className="font-semibold cursor-pointer">
-                  How is this different from a regular newsletter?
+                  What kind of emails can I create?
                 </summary>
                 <p className="mt-3 text-[color:var(--muted)]">
-                  Regular newsletters broadcast the same content to everyone. Our motivation
-                  newsletter adapts each email to your specific goal, preferred motivational
-                  angle, and imagery keywords.
+                  Any recurring email. Daily SQL question, weekly NBA scores, monthly book summary,
+                  morning prayer reminder, fitness nudge, language-learning drill, market recap — if
+                  you can describe it in a sentence, the AI can produce it.
                 </p>
               </details>
               <details className="glass p-5">
                 <summary className="font-semibold cursor-pointer">
-                  What goals can I track?
+                  How is this different from a normal newsletter?
                 </summary>
                 <p className="mt-3 text-[color:var(--muted)]">
-                  Any goal. Fitness motivation, career motivation, study habits, creative
-                  projects, quitting bad habits, building new ones — if you want to stay
-                  motivated, we build the emails around it.
+                  Normal newsletters broadcast the same content to everyone. Here, every email is
+                  generated from your own prompt and brief, so it&apos;s built for you and stays fresh
+                  across sends.
                 </p>
               </details>
               <details className="glass p-5">
@@ -429,7 +426,7 @@ export default function HomeClient() {
       )}
 
       <footer className="relative z-10 py-6 text-center text-xs text-[color:var(--muted)]">
-        Spark (free · monthly) · Boost ($1/mo · +weekly) · Drive ($5/mo · +daily, 5 goals)
+        Spark (free · monthly) · Boost ($1/mo · +weekly) · Drive ($5/mo · +daily, 5 schedules)
       </footer>
     </main>
   );

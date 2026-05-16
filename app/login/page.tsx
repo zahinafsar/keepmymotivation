@@ -69,7 +69,7 @@ export default function LoginPage() {
             <p className="text-center text-sm text-[color:var(--muted)]">
               New here?{" "}
               <a href="/" className="text-white hover:underline">
-                Start with your goal
+                Create your first schedule
               </a>
             </p>
           </form>

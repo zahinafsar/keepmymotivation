@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "KeepMyMotivation — personalized motivational emails";
+export const alt = "KeepMyMotivation — schedule any email, written by AI";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -45,13 +45,13 @@ export default async function Image() {
             color: "white",
           }}
         >
-          Daily motivation,
+          Schedule any email.
           <br />
-          personalized to your goal.
+          AI writes every send.
         </div>
         <div style={{ fontSize: 30, color: "#9999a3", maxWidth: 900 }}>
-          AI-crafted motivational emails on your schedule. Fitness, career,
-          habits — we keep you moving.
+          Daily, weekly, or monthly. Describe what you want once — we deliver it
+          in your timezone.
         </div>
       </div>
     ),

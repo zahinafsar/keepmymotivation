@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "KeepMyMotivation",
     short_name: "KeepMyMotivation",
     description:
-      "Personalized motivational emails on your schedule. Daily, weekly, or monthly motivation tailored to your goal.",
+      "Schedule any recurring email and let AI write it. Daily, weekly, or monthly delivery in your timezone.",
     start_url: "/",
     display: "standalone",
     background_color: "#07070b",

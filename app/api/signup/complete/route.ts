@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPin, isValidPin } from "@/lib/pin";
 import { setSessionCookie } from "@/lib/session";
-import { sendMotivationEmailForUser } from "@/lib/email-dispatcher";
+import { sendScheduledEmailForUser } from "@/lib/email-dispatcher";
 
 type Body = {
   fullname: string;
@@ -10,9 +10,9 @@ type Body = {
   pin: string;
   timezone: string;
   sendHour: number;
-  goal: string;
+  prompt: string;
   clarifyQA: Array<{ q: string; a: string }>;
-  theme: string;
+  brief: string;
   imageKeyword: string;
   subjectHint: string;
 };
@@ -20,7 +20,7 @@ type Body = {
 export async function POST(req: NextRequest) {
   const b = (await req.json()) as Body;
 
-  if (!b.fullname || !b.email || !b.pin || !b.goal || !b.theme) {
+  if (!b.fullname || !b.email || !b.pin || !b.prompt || !b.brief) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
   if (!isValidPin(b.pin)) {
@@ -40,18 +40,20 @@ export async function POST(req: NextRequest) {
   const now = new Date();
   const dayOfMonth = now.getUTCDate();
 
+  const imageKeyword = b.imageKeyword?.trim() ? b.imageKeyword.trim() : null;
+
   const user = await prisma.user.create({
     data: {
       fullname: b.fullname.trim(),
       email: b.email.trim().toLowerCase(),
       pinHash,
       timezone: b.timezone || "UTC",
-      goals: {
+      schedules: {
         create: {
-          goalText: b.goal,
+          prompt: b.prompt,
           clarifyQA: b.clarifyQA ?? [],
-          theme: b.theme,
-          imageKeyword: b.imageKeyword,
+          brief: b.brief,
+          imageKeyword,
           subjectHint: b.subjectHint,
           kind: "MONTHLY",
           hour: b.sendHour,
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
       },
       subscription: { create: { plan: "SPARK", status: "ACTIVE" } },
     },
-    include: { goals: true },
+    include: { schedules: true },
   });
 
   await prisma.emailVerification.delete({ where: { email: b.email } }).catch(() => {});
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
   await setSessionCookie(user.id);
 
   // Fire preview email async; don't fail signup if email send hiccups.
-  sendMotivationEmailForUser(user.id, { preview: true }).catch((e) =>
+  sendScheduledEmailForUser(user.id, { preview: true }).catch((e) =>
     console.error("Preview email failed", e)
   );
 

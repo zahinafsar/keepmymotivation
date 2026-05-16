@@ -5,36 +5,33 @@ import {
   Html,
   Img,
   Link,
+  Markdown,
   Preview,
   Section,
   Text,
 } from "@react-email/components";
 
-export type MotivationEmailProps = {
-  greeting: string;
-  body: string;
-  quote: string;
-  quoteAuthor: string;
+export type ScheduledEmailProps = {
+  preview: string;
+  markdown: string;
   image?: { url: string; alt: string; credit: { name: string; link: string } } | null;
   upgradeUrl?: string;
   showUpgrade?: boolean;
   manageUrl: string;
 };
 
-export default function MotivationEmail({
-  greeting,
-  body: bodyText,
+export default function ScheduledEmail({
+  preview,
+  markdown,
   image,
   upgradeUrl,
   showUpgrade,
   manageUrl,
-}: MotivationEmailProps) {
-  const paragraphs = bodyText.split(/\n+/).filter(Boolean);
-  const previewText = paragraphs[0] ?? greeting;
+}: ScheduledEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>{previewText}</Preview>
+      <Preview>{preview || ""}</Preview>
       <Body style={bodyStyle}>
         <Container style={container}>
           {image && (
@@ -48,14 +45,15 @@ export default function MotivationEmail({
               />
             </Section>
           )}
-          <Section style={{ padding: "28px 32px 20px" }}>
-            <Text style={greetingStyle}>{greeting}</Text>
-            {paragraphs.map((p, i) => (
-              <Text key={i} style={para}>
-                {p}
-              </Text>
-            ))}
+          <Section style={{ padding: "28px 32px 8px" }}>
+            <Markdown
+              markdownContainerStyles={mdContainer}
+              markdownCustomStyles={mdStyles}
+            >
+              {markdown}
+            </Markdown>
           </Section>
+
           {showUpgrade && upgradeUrl && (
             <Section style={{ padding: "0 32px 24px" }}>
               <Text style={upgradeHint}>
@@ -78,10 +76,10 @@ export default function MotivationEmail({
           )}
           <Section style={footer}>
             <Text style={footerText}>
-              You receive this because you set a goal at KeepMyMotivation.
+              You receive this because you set up a schedule at KeepMyMotivation.
               <br />
               <Link href={manageUrl} style={footerLink}>
-                Manage your goals
+                Manage your schedules
               </Link>{" "}
               to pause or stop these emails.
             </Text>
@@ -112,17 +110,93 @@ const heroImg: React.CSSProperties = {
   display: "block",
   objectFit: "cover",
 };
-const greetingStyle: React.CSSProperties = {
-  color: "#fff",
-  fontSize: 20,
-  fontWeight: 600,
-  margin: "0 0 16px",
-};
-const para: React.CSSProperties = {
+const mdContainer: React.CSSProperties = {
   color: "#d4d4d8",
-  fontSize: 15,
-  lineHeight: 1.65,
-  margin: "0 0 14px",
+};
+const mdStyles = {
+  h1: {
+    color: "#ffffff",
+    fontSize: 26,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    margin: "0 0 16px",
+  },
+  h2: {
+    color: "#e4e4e7",
+    fontSize: 18,
+    fontWeight: 600,
+    margin: "20px 0 10px",
+  },
+  h3: {
+    color: "#e4e4e7",
+    fontSize: 16,
+    fontWeight: 600,
+    margin: "18px 0 8px",
+  },
+  p: {
+    color: "#d4d4d8",
+    fontSize: 15,
+    lineHeight: 1.65,
+    margin: "0 0 12px",
+  },
+  ul: {
+    margin: "0 0 14px",
+    padding: "0 0 0 20px",
+    color: "#d4d4d8",
+  },
+  ol: {
+    margin: "0 0 14px",
+    padding: "0 0 0 20px",
+    color: "#d4d4d8",
+  },
+  li: {
+    fontSize: 15,
+    lineHeight: 1.6,
+    margin: "0 0 6px",
+  },
+  link: {
+    color: "#f97316",
+    textDecoration: "underline",
+  },
+  bold: {
+    color: "#ffffff",
+    fontWeight: 700,
+  },
+  italic: {
+    color: "#d4d4d8",
+    fontStyle: "italic" as const,
+  },
+  codeInline: {
+    backgroundColor: "#1f1f28",
+    color: "#fbbf24",
+    padding: "2px 6px",
+    borderRadius: 4,
+    fontSize: 13.5,
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  },
+  codeBlock: {
+    backgroundColor: "#0f0f14",
+    color: "#e4e4e7",
+    padding: "14px 16px",
+    borderRadius: 8,
+    fontSize: 13,
+    lineHeight: 1.55,
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    border: "1px solid #26262f",
+    overflow: "auto" as const,
+    margin: "0 0 14px",
+  },
+  blockQuote: {
+    borderLeft: "3px solid #f97316",
+    paddingLeft: 14,
+    color: "#a1a1aa",
+    fontStyle: "italic" as const,
+    margin: "0 0 14px",
+  },
+  hr: {
+    borderColor: "#26262f",
+    margin: "20px 0",
+  },
 };
 const upgradeHint: React.CSSProperties = {
   color: "#a1a1aa",

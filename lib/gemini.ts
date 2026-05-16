@@ -15,29 +15,25 @@ export type ClarifyStep =
   | { done: false; question: string }
   | {
       done: true;
-      theme: string;
+      brief: string;
       imageKeyword: string;
       subjectHint: string;
     };
 
-const CLARIFY_SYSTEM = `You are a motivational coach. User shares a goal. Ask at most TWO short clarifying questions to pinpoint the WHY + imagery that will motivate them.
+const CLARIFY_SYSTEM = `You help shape a recurring scheduled email for a user. The user provides a free-text prompt describing what they want emailed to them on a schedule (motivation, news recap, recipe, study tip, prayer reminder, fitness nudge — anything).
 
-CRITICAL RULES:
-- Prefer finalizing early. Only ask a question if you genuinely cannot guess a motivating theme from what you have.
-- If the goal or the first answer is already clear enough to pick a theme + image keyword, FINALIZE — do not ask for more.
-- Never ask more than 2 total questions.
-- After 2 answers, you MUST finalize.
-- Questions must be SHORT: max 10 words, one question mark, plain language, no preamble.
-  Good: "Why does this matter to you?"
-  Good: "What does winning look like?"
-  Bad: "What specifically about going to the gym excites you most or makes you feel good about yourself?"
+YOUR JOB:
+- If the prompt already gives you enough to write a strong email, FINALIZE immediately.
+- Otherwise ask AT MOST TWO short clarifying questions to pin down audience, purpose, tone, depth, or any missing constraint.
+- Questions must be SHORT: max 12 words, one question mark, plain language, no preamble.
+- After 2 answered questions, you MUST finalize.
 
-When asking: return { "done": false, "question": "..." } with theme, imageKeyword, subjectHint as empty strings.
-When finalizing: return { "done": true, "theme": "short phrase", "imageKeyword": "2-4 word image search", "subjectHint": "short subject fragment" } with question as empty string.
+When asking: return { "done": false, "question": "..." } with brief, imageKeyword, subjectHint as empty strings.
 
-Examples of final output:
-- theme: "attractive physique" · imageKeyword: "muscular bodybuilder silhouette" · subjectHint: "Your stronger self is watching"
-- theme: "financial freedom" · imageKeyword: "sunrise city skyline" · subjectHint: "Future you is counting on today"
+When finalizing: return { "done": true, "brief": "...", "imageKeyword": "...", "subjectHint": "..." } with question empty.
+- brief: ONE paragraph (40-90 words) describing exactly what each email should contain — audience, purpose, tone, structure, level of depth. This is the directive a copywriter follows every send.
+- imageKeyword: 2-4 word visual search term IF a hero image fits the email. Leave empty string "" for text-only emails (technical/code/data/Q&A/very-short reminders usually don't need a hero image).
+- subjectHint: short fragment that hints at subject-line style.
 
 No markdown. No emojis.`;
 
@@ -46,16 +42,16 @@ const CLARIFY_SCHEMA = {
   properties: {
     done: { type: Type.BOOLEAN },
     question: { type: Type.STRING },
-    theme: { type: Type.STRING },
+    brief: { type: Type.STRING },
     imageKeyword: { type: Type.STRING },
     subjectHint: { type: Type.STRING },
   },
-  required: ["done", "question", "theme", "imageKeyword", "subjectHint"],
-  propertyOrdering: ["done", "question", "theme", "imageKeyword", "subjectHint"],
+  required: ["done", "question", "brief", "imageKeyword", "subjectHint"],
+  propertyOrdering: ["done", "question", "brief", "imageKeyword", "subjectHint"],
 };
 
 export async function nextClarifyStep(
-  goal: string,
+  prompt: string,
   history: ClarifyTurn[]
 ): Promise<ClarifyStep> {
   const historyText =
@@ -64,11 +60,11 @@ export async function nextClarifyStep(
       : history.map((t, i) => `Q${i + 1}: ${t.q}\nA${i + 1}: ${t.a}`).join("\n");
 
   const mustFinalize = history.length >= 2;
-  const userPrompt = `User goal: ${goal}
+  const userPrompt = `User prompt: ${prompt}
 Turns so far: ${history.length} (max 2).
 ${historyText}
 
-${mustFinalize ? "You MUST finalize now. Return done=true with theme, imageKeyword, subjectHint." : "If you can already pick a strong theme + image keyword, FINALIZE. Otherwise ask ONE short (<=10 words) question."}`;
+${mustFinalize ? "You MUST finalize now. Return done=true with brief, imageKeyword, subjectHint." : "If you can already write a strong brief, FINALIZE. Otherwise ask ONE short (<=12 words) question."}`;
 
   const res = await client().models.generateContent({
     model: MODEL_ID,
@@ -84,7 +80,7 @@ ${mustFinalize ? "You MUST finalize now. Return done=true with theme, imageKeywo
   const parsed = JSON.parse(text) as {
     done: boolean;
     question: string;
-    theme: string;
+    brief: string;
     imageKeyword: string;
     subjectHint: string;
   };
@@ -92,59 +88,64 @@ ${mustFinalize ? "You MUST finalize now. Return done=true with theme, imageKeywo
   if (parsed.done || mustFinalize) {
     return {
       done: true,
-      theme: parsed.theme || "personal growth",
-      imageKeyword: parsed.imageKeyword || "sunrise mountain runner",
-      subjectHint: parsed.subjectHint || "Keep going",
+      brief: parsed.brief || prompt,
+      imageKeyword: (parsed.imageKeyword || "").trim(),
+      subjectHint: parsed.subjectHint || "Your scheduled update",
     };
   }
-  return { done: false, question: (parsed.question || "Why does this matter to you?").trim() };
+  return { done: false, question: (parsed.question || "What outcome do you want from these emails?").trim() };
 }
 
-export type MotivationCopy = {
+export type ScheduledEmailCopy = {
   subject: string;
-  greeting: string;
-  body: string;
-  quote: string;
-  quoteAuthor: string;
+  preview: string;
+  markdown: string;
 };
 
-const COPY_SYSTEM = `You write ultra-short, punchy motivational emails. Output strict JSON.
-- subject: compelling, <60 chars.
-- greeting: 1 line, warm, uses first name.
-- body: 2 short paragraphs MAX, ~40-70 words TOTAL (plain text, \\n separated). Speak directly to the goal + theme. One concrete image. No filler, no platitudes, no throat-clearing.
-- quote: one real motivational quote relevant to the theme (kept for metadata, not displayed).
-- quoteAuthor: attribution.
-Absolutely no markdown, no emojis.`;
+const COPY_SYSTEM = `You write a single scheduled email for a recipient, following a fixed brief.
+
+Output strict JSON with three fields:
+- subject: <60 chars, compelling, matches subjectHint style. Plain text, no markdown.
+- preview: <90 chars, inbox-preview line (one sentence, no trailing period required). Plain text.
+- markdown: the full email body in GitHub-flavored Markdown. This is rendered to HTML for Gmail and other clients.
+
+MARKDOWN RULES (body):
+- Start with a single H1 (\`# Title\`) — short, <70 chars.
+- Use H2 (\`##\`) for section headings as needed.
+- Use paragraphs, bulleted lists, numbered lists, **bold**, *italic*, \`inline code\`, fenced code blocks (\`\`\`), > blockquotes, and [links](https://...) — whatever fits the content.
+- Tables, images, raw HTML: do NOT use (poor email-client support).
+- Keep it tight. No filler, no throat-clearing, no platitudes.
+- Vary structure across sends (use dayIndex hint to avoid repeating phrasing).
+- Match the brief exactly: audience, purpose, depth, tone.
+- No emojis unless the brief explicitly asks for them.`;
 
 const COPY_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     subject: { type: Type.STRING },
-    greeting: { type: Type.STRING },
-    body: { type: Type.STRING },
-    quote: { type: Type.STRING },
-    quoteAuthor: { type: Type.STRING },
+    preview: { type: Type.STRING },
+    markdown: { type: Type.STRING },
   },
-  required: ["subject", "greeting", "body", "quote", "quoteAuthor"],
-  propertyOrdering: ["subject", "greeting", "body", "quote", "quoteAuthor"],
+  required: ["subject", "preview", "markdown"],
+  propertyOrdering: ["subject", "preview", "markdown"],
 };
 
-export async function generateMotivationCopy(input: {
+export async function generateScheduledEmailCopy(input: {
   fullname: string;
-  goal: string;
+  prompt: string;
   clarifyQA: ClarifyTurn[];
-  theme: string;
+  brief: string;
   subjectHint: string;
   dayIndex: number;
-}): Promise<MotivationCopy> {
+}): Promise<ScheduledEmailCopy> {
   const qaText = input.clarifyQA.map((t, i) => `Q${i + 1}: ${t.q}\nA${i + 1}: ${t.a}`).join("\n");
   const userPrompt = `Recipient first name: ${input.fullname.split(" ")[0]}
-Goal: ${input.goal}
-Theme: ${input.theme}
+User prompt: ${input.prompt}
+Brief (follow exactly): ${input.brief}
 Subject style hint: ${input.subjectHint}
 Clarifying QA:
-${qaText}
-This is email #${input.dayIndex} in their journey. Keep it fresh — avoid repeating phrasing common to day 1.`;
+${qaText || "(none)"}
+This is email #${input.dayIndex} in their schedule. Keep it fresh — avoid repeating phrasing from earlier sends.`;
 
   const res = await client().models.generateContent({
     model: MODEL_ID,
@@ -157,5 +158,5 @@ This is email #${input.dayIndex} in their journey. Keep it fresh — avoid repea
   });
 
   const text = res.text ?? "{}";
-  return JSON.parse(text) as MotivationCopy;
+  return JSON.parse(text) as ScheduledEmailCopy;
 }
