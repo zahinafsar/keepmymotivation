@@ -1,6 +1,5 @@
 import { prisma } from "./prisma";
 import { sendEmail } from "./resend";
-import { searchPexels } from "./stock";
 import { generateScheduledEmailCopy, type ClarifyTurn } from "./gemini";
 import ScheduledEmail from "../emails/ScheduledEmail";
 import { env } from "./env";
@@ -26,19 +25,14 @@ export async function sendScheduledEmailForUser(
   const dayIndex =
     (await prisma.emailLog.count({ where: { scheduleId: schedule.id } })) + 1;
 
-  const [copy, image] = await Promise.all([
-    generateScheduledEmailCopy({
-      fullname: user.fullname,
-      prompt: schedule.prompt,
-      clarifyQA: schedule.clarifyQA as unknown as ClarifyTurn[],
-      brief: schedule.brief,
-      subjectHint: schedule.subjectHint,
-      dayIndex,
-    }),
-    schedule.imageKeyword
-      ? searchPexels(schedule.imageKeyword).catch(() => null)
-      : Promise.resolve(null),
-  ]);
+  const copy = await generateScheduledEmailCopy({
+    fullname: user.fullname,
+    prompt: schedule.prompt,
+    clarifyQA: schedule.clarifyQA as unknown as ClarifyTurn[],
+    brief: schedule.brief,
+    subjectHint: schedule.subjectHint,
+    dayIndex,
+  });
 
   const showUpgrade = user.subscription.plan === "SPARK";
   const manageUrl = `${env.APP_URL}/dashboard`;
@@ -49,7 +43,6 @@ export async function sendScheduledEmailForUser(
     react: ScheduledEmail({
       preview: copy.preview,
       markdown: copy.markdown,
-      image,
       upgradeUrl: manageUrl,
       showUpgrade,
       manageUrl,
@@ -63,7 +56,7 @@ export async function sendScheduledEmailForUser(
       scheduleId: schedule.id,
       subject: copy.subject,
       body: copy.markdown,
-      imageUrl: image?.url ?? null,
+      imageUrl: null,
       plan: user.subscription.plan,
       preview: opts.preview ?? false,
     },

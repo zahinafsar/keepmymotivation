@@ -3,7 +3,6 @@ import {
   Container,
   Head,
   Html,
-  Img,
   Link,
   Markdown,
   Preview,
@@ -14,7 +13,6 @@ import {
 export type ScheduledEmailProps = {
   preview: string;
   markdown: string;
-  image?: { url: string; alt: string; credit: { name: string; link: string } } | null;
   upgradeUrl?: string;
   showUpgrade?: boolean;
   manageUrl: string;
@@ -23,7 +21,6 @@ export type ScheduledEmailProps = {
 export default function ScheduledEmail({
   preview,
   markdown,
-  image,
   upgradeUrl,
   showUpgrade,
   manageUrl,
@@ -34,17 +31,6 @@ export default function ScheduledEmail({
       <Preview>{preview || ""}</Preview>
       <Body style={bodyStyle}>
         <Container style={container}>
-          {image && (
-            <Section>
-              <Img
-                src={image.url}
-                alt={image.alt}
-                width={560}
-                height={320}
-                style={heroImg}
-              />
-            </Section>
-          )}
           <Section style={{ padding: "28px 32px 8px" }}>
             <Markdown
               markdownContainerStyles={mdContainer}
@@ -64,15 +50,6 @@ export default function ScheduledEmail({
                 .
               </Text>
             </Section>
-          )}
-          {image && (
-            <Text style={credit}>
-              Photo by{" "}
-              <Link href={image.credit.link} style={creditLink}>
-                {image.credit.name}
-              </Link>{" "}
-              on Pexels
-            </Text>
           )}
           <Section style={footer}>
             <Text style={footerText}>
@@ -103,12 +80,6 @@ const container: React.CSSProperties = {
   maxWidth: 600,
   margin: "0 auto",
   border: "1px solid #26262f",
-};
-const heroImg: React.CSSProperties = {
-  width: "100%",
-  height: "auto",
-  display: "block",
-  objectFit: "cover",
 };
 const mdContainer: React.CSSProperties = {
   color: "#d4d4d8",
@@ -207,14 +178,6 @@ const upgradeLink: React.CSSProperties = {
   color: "#d4d4d8",
   textDecoration: "underline",
 };
-const credit: React.CSSProperties = {
-  color: "#5c5c66",
-  fontSize: 11,
-  textAlign: "center",
-  padding: "0 16px 16px",
-  margin: 0,
-};
-const creditLink: React.CSSProperties = { color: "#9999a3" };
 const footer: React.CSSProperties = {
   borderTop: "1px solid #26262f",
   padding: "16px 32px 20px",
