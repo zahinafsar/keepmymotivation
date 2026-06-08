@@ -33,7 +33,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-white">2. The Service</h2>
             <p>
               KeepMyMotivation sends you personalized motivational emails based on goals you provide,
-              on a cadence tied to your plan. Content is generated with AI and is for personal
+              on a cadence you choose. Content is generated with AI and is for personal
               encouragement only — not professional, medical, legal, or financial advice.
             </p>
           </section>
@@ -48,11 +48,12 @@ export default function TermsPage() {
 
           <section className="space-y-2">
             <h2 className="text-xl font-semibold text-white">4. Plans & Billing</h2>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>Spark: 1 email / month, free.</li>
-              <li>Boost: 1 email / week, paid subscription.</li>
-              <li>Drive: 1 email / day, paid subscription.</li>
-            </ul>
+            <p>
+              Every account starts with a 7-day free trial with full access — daily, weekly, and
+              monthly emails and unlimited schedules — and no card required. After the trial, the
+              Service costs $5 / month for the same full access. Access is paused once the trial ends
+              unless you subscribe.
+            </p>
             <p>
               Paid subscriptions are processed by Lemon Squeezy and renew automatically until
               cancelled. You can cancel anytime; cancellation stops future renewals and keeps access

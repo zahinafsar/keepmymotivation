@@ -1,100 +1,16 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateObject, generateText, tool, stepCountIs } from "ai";
+import { z } from "zod";
 import { env } from "./env";
+import { searchWeb, scrapeUrl } from "./firecrawl";
 
-let _client: GoogleGenAI | null = null;
-function client() {
-  if (!_client) _client = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY() });
-  return _client;
+let _google: ReturnType<typeof createGoogleGenerativeAI> | null = null;
+function model() {
+  if (!_google) _google = createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY() });
+  return _google(MODEL_ID);
 }
 
 const MODEL_ID = "gemini-2.5-flash";
-
-export type ClarifyTurn = { q: string; a: string };
-
-export type ClarifyStep =
-  | { done: false; question: string }
-  | {
-      done: true;
-      brief: string;
-      imageKeyword: string;
-      subjectHint: string;
-    };
-
-const CLARIFY_SYSTEM = `You help shape a recurring scheduled email for a user. The user provides a free-text prompt describing what they want emailed to them on a schedule (motivation, news recap, recipe, study tip, prayer reminder, fitness nudge — anything).
-
-YOUR JOB:
-- If the prompt already gives you enough to write a strong email, FINALIZE immediately.
-- Otherwise ask AT MOST TWO short clarifying questions to pin down audience, purpose, tone, depth, or any missing constraint.
-- Questions must be SHORT: max 12 words, one question mark, plain language, no preamble.
-- After 2 answered questions, you MUST finalize.
-
-When asking: return { "done": false, "question": "..." } with brief, imageKeyword, subjectHint as empty strings.
-
-When finalizing: return { "done": true, "brief": "...", "imageKeyword": "...", "subjectHint": "..." } with question empty.
-- brief: ONE paragraph (40-90 words) describing exactly what each email should contain — audience, purpose, tone, structure, level of depth. This is the directive a copywriter follows every send.
-- imageKeyword: 2-4 word visual search term IF a hero image fits the email. Leave empty string "" for text-only emails (technical/code/data/Q&A/very-short reminders usually don't need a hero image).
-- subjectHint: short fragment that hints at subject-line style.
-
-No markdown. No emojis.`;
-
-const CLARIFY_SCHEMA = {
-  type: Type.OBJECT,
-  properties: {
-    done: { type: Type.BOOLEAN },
-    question: { type: Type.STRING },
-    brief: { type: Type.STRING },
-    imageKeyword: { type: Type.STRING },
-    subjectHint: { type: Type.STRING },
-  },
-  required: ["done", "question", "brief", "imageKeyword", "subjectHint"],
-  propertyOrdering: ["done", "question", "brief", "imageKeyword", "subjectHint"],
-};
-
-export async function nextClarifyStep(
-  prompt: string,
-  history: ClarifyTurn[]
-): Promise<ClarifyStep> {
-  const historyText =
-    history.length === 0
-      ? "(no questions asked yet)"
-      : history.map((t, i) => `Q${i + 1}: ${t.q}\nA${i + 1}: ${t.a}`).join("\n");
-
-  const mustFinalize = history.length >= 2;
-  const userPrompt = `User prompt: ${prompt}
-Turns so far: ${history.length} (max 2).
-${historyText}
-
-${mustFinalize ? "You MUST finalize now. Return done=true with brief, imageKeyword, subjectHint." : "If you can already write a strong brief, FINALIZE. Otherwise ask ONE short (<=12 words) question."}`;
-
-  const res = await client().models.generateContent({
-    model: MODEL_ID,
-    contents: userPrompt,
-    config: {
-      systemInstruction: CLARIFY_SYSTEM,
-      responseMimeType: "application/json",
-      responseSchema: CLARIFY_SCHEMA,
-    },
-  });
-
-  const text = res.text ?? "{}";
-  const parsed = JSON.parse(text) as {
-    done: boolean;
-    question: string;
-    brief: string;
-    imageKeyword: string;
-    subjectHint: string;
-  };
-
-  if (parsed.done || mustFinalize) {
-    return {
-      done: true,
-      brief: parsed.brief || prompt,
-      imageKeyword: (parsed.imageKeyword || "").trim(),
-      subjectHint: parsed.subjectHint || "Your scheduled update",
-    };
-  }
-  return { done: false, question: (parsed.question || "What outcome do you want from these emails?").trim() };
-}
 
 export type ScheduledEmailCopy = {
   subject: string;
@@ -102,12 +18,20 @@ export type ScheduledEmailCopy = {
   markdown: string;
 };
 
-const COPY_SYSTEM = `You write a single scheduled email for a recipient, following a fixed brief.
+const DRAFT_SYSTEM = `You write the BODY of a single scheduled email, following the recipient's request.
 
-Output strict JSON with three fields:
-- subject: <60 chars, compelling, matches subjectHint style. Plain text, no markdown.
-- preview: <90 chars, inbox-preview line (one sentence, no trailing period required). Plain text.
-- markdown: the full email body in GitHub-flavored Markdown. This is rendered to HTML for Gmail and other clients.
+Output ONLY the email body in GitHub-flavored Markdown — no preamble, no code fence around the whole thing, no "here is your email".
+
+DECIDE EVERYTHING the request leaves open (tone, depth, length, audience level, structure) with sensible defaults that fit the topic. Don't ask — just produce a strong email.
+
+LIVE SOURCES (tools):
+- You may have two tools: webSearch (fresh info from a query) and scrapeUrl (read one URL as markdown).
+- If the request needs CURRENT information, call webSearch first. If it names specific URLs to read, call scrapeUrl on them.
+- Base any factual content STRICTLY on tool results — never invent figures, dates, quotes, or links beyond what they return.
+- If a tool returns nothing usable, write from your own knowledge. Never mention tools, searches, fetch failures, or sources to the reader.
+- Don't call tools when the email needs no live data (timeless motivation, evergreen tips, code/Q&A).
+
+- Write in the same language as the fetched source content (or the request when there are no sources).
 
 MARKDOWN RULES (body):
 - Start with a single H1 (\`# Title\`) — short, <70 chars.
@@ -116,47 +40,70 @@ MARKDOWN RULES (body):
 - Tables, images, raw HTML: do NOT use (poor email-client support).
 - Keep it tight. No filler, no throat-clearing, no platitudes.
 - Vary structure across sends (use dayIndex hint to avoid repeating phrasing).
-- Match the brief exactly: audience, purpose, depth, tone.
-- No emojis unless the brief explicitly asks for them.`;
+- No emojis unless the request explicitly asks for them.`;
 
-const COPY_SCHEMA = {
-  type: Type.OBJECT,
-  properties: {
-    subject: { type: Type.STRING },
-    preview: { type: Type.STRING },
-    markdown: { type: Type.STRING },
-  },
-  required: ["subject", "preview", "markdown"],
-  propertyOrdering: ["subject", "preview", "markdown"],
-};
+const SUBJECT_SYSTEM = `You write the inbox subject line and preview text for a finished email body.
+
+Return:
+- subject: <60 chars, compelling, fits the email. Plain text, no markdown.
+- preview: <90 chars, one-sentence inbox-preview line (no trailing period required). Plain text.
+
+Write both in the SAME language as the email body. No markdown, no emojis unless the body uses them.`;
+
+const subjectSchema = z.object({
+  subject: z.string(),
+  preview: z.string(),
+});
+
+const searchWebTool = tool({
+  description:
+    "Search the web for current, up-to-date information. Returns markdown snippets from the top results. Use when the email needs fresh facts, news, prices, scores, or anything time-sensitive.",
+  inputSchema: z.object({
+    query: z.string().describe("A concise web search query."),
+  }),
+  execute: async ({ query }) => (await searchWeb(query)) ?? "No results found.",
+});
+
+const scrapeUrlTool = tool({
+  description:
+    "Fetch the main content of one specific URL as markdown. Use when the user prompt names a URL to read or summarize.",
+  inputSchema: z.object({
+    url: z.string().describe("An absolute http(s) URL to fetch."),
+  }),
+  execute: async ({ url }) => (await scrapeUrl(url)) ?? "Could not fetch this URL.",
+});
 
 export async function generateScheduledEmailCopy(input: {
   fullname: string;
   prompt: string;
-  clarifyQA: ClarifyTurn[];
-  brief: string;
-  subjectHint: string;
   dayIndex: number;
 }): Promise<ScheduledEmailCopy> {
-  const qaText = input.clarifyQA.map((t, i) => `Q${i + 1}: ${t.q}\nA${i + 1}: ${t.a}`).join("\n");
   const userPrompt = `Recipient first name: ${input.fullname.split(" ")[0]}
-User prompt: ${input.prompt}
-Brief (follow exactly): ${input.brief}
-Subject style hint: ${input.subjectHint}
-Clarifying QA:
-${qaText || "(none)"}
+Request: ${input.prompt}
 This is email #${input.dayIndex} in their schedule. Keep it fresh — avoid repeating phrasing from earlier sends.`;
 
-  const res = await client().models.generateContent({
-    model: MODEL_ID,
-    contents: userPrompt,
-    config: {
-      systemInstruction: COPY_SYSTEM,
-      responseMimeType: "application/json",
-      responseSchema: COPY_SCHEMA,
-    },
+  // Tools need Firecrawl; only offer them when configured.
+  // NOTE: Gemini can't combine function-calling with JSON output in one call,
+  // so we draft the body with tools (plain text), then format subject/preview.
+  const tools = env.FIRECRAWL_API_KEY()
+    ? { webSearch: searchWebTool, scrapeUrl: scrapeUrlTool }
+    : undefined;
+
+  const draft = await generateText({
+    model: model(),
+    system: DRAFT_SYSTEM,
+    prompt: userPrompt,
+    tools,
+    stopWhen: stepCountIs(5),
+  });
+  const markdown = draft.text.trim();
+
+  const { object } = await generateObject({
+    model: model(),
+    schema: subjectSchema,
+    system: SUBJECT_SYSTEM,
+    prompt: `Email body:\n${markdown}`,
   });
 
-  const text = res.text ?? "{}";
-  return JSON.parse(text) as ScheduledEmailCopy;
+  return { subject: object.subject, preview: object.preview, markdown };
 }

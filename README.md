@@ -38,7 +38,7 @@ OPENAI_API_KEY="..."
 PEXELS_API_KEY="..."
 
 RESEND_API_KEY="..."
-RESEND_FROM="KeepMyMotivation <noreply@keepmymotivation.com>"
+RESEND_FROM="KeepMyMotivation <notifier@keepmymotivation.com>"
 
 LEMONSQUEEZY_WEBHOOK_SECRET="..."            # max 40 chars, HMAC secret set in LS dashboard
 LEMONSQUEEZY_CHECKOUT_BOOST="https://<store>.lemonsqueezy.com/checkout/buy/<uuid>"

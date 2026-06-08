@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 
 type Onboarding = {
   prompt: string;
-  clarifyQA: Array<{ q: string; a: string }>;
-  brief: string;
-  imageKeyword: string;
-  subjectHint: string;
-  sendHour: number;
+  kind: "DAILY" | "WEEKLY" | "MONTHLY";
+  hour: number;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
   timezone: string;
 };
 

@@ -29,21 +29,17 @@ model EmailVerification {
 }
 
 model Schedule {
-  id           String       @id @default(cuid())
-  userId       String
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prompt       String
-  clarifyQA    Json
-  brief        String
-  imageKeyword String?
-  subjectHint  String
-  kind         ScheduleKind
-  hour         Int
-  dayOfWeek    Int?
-  dayOfMonth   Int?
-  active       Boolean      @default(true)
-  createdAt    DateTime     @default(now())
-  emailLogs    EmailLog[]
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt     String
+  kind       ScheduleKind
+  hour       Int
+  dayOfWeek  Int?
+  dayOfMonth Int?
+  active     Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  emailLogs  EmailLog[]
 
   @@index([userId])
   @@map("schedules")
@@ -53,8 +49,9 @@ model Subscription {
   id                   String    @id @default(cuid())
   userId               String    @unique
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan             Plan      @default(SPARK)
-  status           SubStatus @default(ACTIVE)
+  plan             Plan      @default(PRO)
+  status           SubStatus @default(TRIALING)
+  trialEndsAt      DateTime?
   lsCustomerId     String?   @unique
   lsSubscriptionId String?   @unique
   currentPeriodEnd DateTime?
@@ -90,9 +87,7 @@ model Session {
 }
 
 enum Plan {
-  SPARK
-  BOOST
-  DRIVE
+  PRO
 }
 
 enum ScheduleKind {
@@ -102,6 +97,7 @@ enum ScheduleKind {
 }
 
 enum SubStatus {
+  TRIALING
   ACTIVE
   CANCELED
   PAST_DUE

@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "./env";
-import type { Plan, SubStatus } from "@prisma/client";
+import type { SubStatus } from "@prisma/client";
 
 export function verifyLemonSignature(rawBody: string, sigHeader: string | null): boolean {
   if (!sigHeader) return false;
@@ -13,16 +13,8 @@ export function verifyLemonSignature(rawBody: string, sigHeader: string | null):
   return timingSafeEqual(a, b);
 }
 
-export function checkoutUrlForPlan(plan: Exclude<Plan, "SPARK">): string {
-  return plan === "BOOST"
-    ? env.LEMONSQUEEZY_CHECKOUT_BOOST()
-    : env.LEMONSQUEEZY_CHECKOUT_DRIVE();
-}
-
-export function variantIdForPlan(plan: Exclude<Plan, "SPARK">): string {
-  return plan === "BOOST"
-    ? env.LEMONSQUEEZY_VARIANT_BOOST()
-    : env.LEMONSQUEEZY_VARIANT_DRIVE();
+export function checkoutUrlForPro(): string {
+  return env.LEMONSQUEEZY_CHECKOUT_PRO();
 }
 
 const LS_API = "https://api.lemonsqueezy.com/v1";
@@ -46,23 +38,6 @@ async function lsFetch(path: string, init: RequestInit): Promise<unknown> {
 
 export async function cancelLsSubscription(lsSubscriptionId: string): Promise<void> {
   await lsFetch(`/subscriptions/${lsSubscriptionId}`, { method: "DELETE" });
-}
-
-export async function changeLsSubscriptionPlan(
-  lsSubscriptionId: string,
-  plan: Exclude<Plan, "SPARK">
-): Promise<void> {
-  const variantId = variantIdForPlan(plan);
-  await lsFetch(`/subscriptions/${lsSubscriptionId}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      data: {
-        type: "subscriptions",
-        id: lsSubscriptionId,
-        attributes: { variant_id: Number(variantId), invoice_immediately: true },
-      },
-    }),
-  });
 }
 
 export function mapLsStatus(status: string): SubStatus {

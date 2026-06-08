@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
-import { PLAN_ALLOWED_KINDS, PLAN_MAX_SCHEDULES } from "@/lib/plan";
+import { hasAccess } from "@/lib/plan";
 import type { ScheduleKind } from "@prisma/client";
 
 export const runtime = "nodejs";
 
 type CreateBody = {
   prompt: string;
-  clarifyQA: Array<{ q: string; a: string }>;
-  brief: string;
-  imageKeyword?: string | null;
-  subjectHint: string;
   kind: ScheduleKind;
   hour: number;
   dayOfWeek?: number | null;
@@ -26,46 +22,26 @@ export async function GET() {
     where: { userId: user.id },
     orderBy: { createdAt: "asc" },
   });
-  const plan = user.subscription?.plan ?? "SPARK";
-  return NextResponse.json({
-    schedules,
-    plan,
-    allowedKinds: PLAN_ALLOWED_KINDS[plan],
-    max: PLAN_MAX_SCHEDULES[plan],
-  });
+  return NextResponse.json({ schedules });
 }
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!user.subscription) return NextResponse.json({ error: "No subscription" }, { status: 400 });
-
-  const plan = user.subscription.plan;
-  const allowed = PLAN_ALLOWED_KINDS[plan];
-  const cap = PLAN_MAX_SCHEDULES[plan];
-
-  const activeCount = await prisma.schedule.count({
-    where: { userId: user.id, active: true },
-  });
-  if (activeCount >= cap) {
+  if (!hasAccess(user.subscription, new Date())) {
     return NextResponse.json(
-      { error: `Plan ${plan} allows ${cap} active schedule(s). Deactivate or delete one first.` },
+      { error: "Your trial has ended. Subscribe to add schedules." },
       { status: 403 }
     );
   }
 
   const b = (await req.json().catch(() => null)) as CreateBody | null;
-  if (!b || !b.prompt || !b.brief || !b.subjectHint) {
+  if (!b || !b.prompt || b.prompt.trim().length < 4) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
   if (typeof b.hour !== "number" || b.hour < 0 || b.hour > 23) {
     return NextResponse.json({ error: "hour must be 0-23" }, { status: 400 });
-  }
-  if (!allowed.includes(b.kind)) {
-    return NextResponse.json(
-      { error: `Plan ${plan} doesn't allow ${b.kind} schedules.` },
-      { status: 403 }
-    );
   }
 
   let dayOfWeek: number | null = null;
@@ -82,16 +58,10 @@ export async function POST(req: NextRequest) {
     dayOfMonth = b.dayOfMonth;
   }
 
-  const imageKeyword = b.imageKeyword?.trim() ? b.imageKeyword.trim() : null;
-
   const created = await prisma.schedule.create({
     data: {
       userId: user.id,
-      prompt: b.prompt,
-      clarifyQA: b.clarifyQA ?? [],
-      brief: b.brief,
-      imageKeyword,
-      subjectHint: b.subjectHint,
+      prompt: b.prompt.trim(),
       kind: b.kind,
       hour: b.hour,
       dayOfWeek,

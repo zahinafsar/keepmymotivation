@@ -1,17 +1,25 @@
 import { DateTime } from "luxon";
-import type { Plan, ScheduleKind } from "@prisma/client";
+import type { ScheduleKind, SubStatus } from "@prisma/client";
 
-export const PLAN_MAX_SCHEDULES: Record<Plan, number> = {
-  SPARK: 1,
-  BOOST: 1,
-  DRIVE: 5,
-};
+export const TRIAL_DAYS = 7;
+export const PLAN_PRICE = "$5";
 
-export const PLAN_ALLOWED_KINDS: Record<Plan, ScheduleKind[]> = {
-  SPARK: ["MONTHLY"],
-  BOOST: ["MONTHLY", "WEEKLY"],
-  DRIVE: ["MONTHLY", "WEEKLY", "DAILY"],
-};
+/**
+ * Single-plan access model: full access during an unexpired trial or while paid.
+ * No per-tier caps or kind restrictions — everything is unlocked when access is granted.
+ */
+export function hasAccess(
+  sub: { status: SubStatus; trialEndsAt: Date | null },
+  now: Date
+): boolean {
+  if (sub.status === "ACTIVE") return true;
+  if (sub.status === "TRIALING") return !!sub.trialEndsAt && sub.trialEndsAt > now;
+  return false; // PAST_DUE / CANCELED → no access
+}
+
+export function trialEndDate(from: Date): Date {
+  return new Date(from.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+}
 
 export function alreadySentThisPeriod(
   kind: ScheduleKind,

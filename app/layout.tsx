@@ -124,29 +124,14 @@ const jsonLd = {
       operatingSystem: "Web",
       applicationCategory: "LifestyleApplication",
       description: DESCRIPTION,
-      offers: [
-        {
-          "@type": "Offer",
-          name: "Spark",
-          description: "1 scheduled email per month",
-          price: "0",
-          priceCurrency: "USD",
-        },
-        {
-          "@type": "Offer",
-          name: "Boost",
-          description: "1 scheduled email per week",
-          price: "1",
-          priceCurrency: "USD",
-        },
-        {
-          "@type": "Offer",
-          name: "Drive",
-          description: "Up to 5 scheduled emails per day",
-          price: "5",
-          priceCurrency: "USD",
-        },
-      ],
+      offers: {
+        "@type": "Offer",
+        name: "Pro",
+        description:
+          "7-day free trial, then full access: daily, weekly, and monthly emails with unlimited schedules",
+        price: "5",
+        priceCurrency: "USD",
+      },
     },
     {
       "@type": "FAQPage",
@@ -164,7 +149,7 @@ const jsonLd = {
           name: "How often will I receive emails?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Choose from three plans: Spark (free, monthly), Boost ($1/month, weekly), or Drive ($5/month, daily, up to 5 schedules).",
+            text: "Start with a 7-day free trial, then $5/month for full access — daily, weekly, or monthly emails with unlimited schedules.",
           },
         },
         {

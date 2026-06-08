@@ -41,8 +41,8 @@ export default async function DashboardPage({
       subscription={
         user.subscription
           ? {
-              plan: user.subscription.plan,
               status: user.subscription.status,
+              trialEndsAt: user.subscription.trialEndsAt?.toISOString() ?? null,
               currentPeriodEnd: user.subscription.currentPeriodEnd?.toISOString() ?? null,
             }
           : null

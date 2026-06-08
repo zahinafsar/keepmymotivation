@@ -3,31 +3,31 @@ import { prisma } from "@/lib/prisma";
 import { hashPin, isValidPin } from "@/lib/pin";
 import { setSessionCookie } from "@/lib/session";
 import { sendScheduledEmailForUser } from "@/lib/email-dispatcher";
+import { trialEndDate } from "@/lib/plan";
 
 type Body = {
   fullname: string;
   email: string;
   pin: string;
   timezone: string;
-  sendHour: number;
   prompt: string;
-  clarifyQA: Array<{ q: string; a: string }>;
-  brief: string;
-  imageKeyword: string;
-  subjectHint: string;
+  kind: "DAILY" | "WEEKLY" | "MONTHLY";
+  hour: number;
+  dayOfWeek?: number | null;
+  dayOfMonth?: number | null;
 };
 
 export async function POST(req: NextRequest) {
   const b = (await req.json()) as Body;
 
-  if (!b.fullname || !b.email || !b.pin || !b.prompt || !b.brief) {
+  if (!b.fullname || !b.email || !b.pin || !b.prompt) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
   if (!isValidPin(b.pin)) {
     return NextResponse.json({ error: "PIN must be 4-6 digits" }, { status: 400 });
   }
-  if (!Number.isInteger(b.sendHour) || b.sendHour < 0 || b.sendHour > 23) {
-    return NextResponse.json({ error: "Invalid sendHour" }, { status: 400 });
+  if (!Number.isInteger(b.hour) || b.hour < 0 || b.hour > 23) {
+    return NextResponse.json({ error: "Invalid hour" }, { status: 400 });
   }
 
   const verification = await prisma.emailVerification.findUnique({ where: { email: b.email } });
@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
   const pinHash = await hashPin(b.pin);
 
   const now = new Date();
-  const dayOfMonth = now.getUTCDate();
-
-  const imageKeyword = b.imageKeyword?.trim() ? b.imageKeyword.trim() : null;
+  const kind = b.kind ?? "DAILY";
+  const dayOfWeek = kind === "WEEKLY" ? b.dayOfWeek ?? 1 : null;
+  const dayOfMonth = kind === "MONTHLY" ? b.dayOfMonth ?? now.getUTCDate() : null;
 
   const user = await prisma.user.create({
     data: {
@@ -50,18 +50,16 @@ export async function POST(req: NextRequest) {
       timezone: b.timezone || "UTC",
       schedules: {
         create: {
-          prompt: b.prompt,
-          clarifyQA: b.clarifyQA ?? [],
-          brief: b.brief,
-          imageKeyword,
-          subjectHint: b.subjectHint,
-          kind: "MONTHLY",
-          hour: b.sendHour,
+          prompt: b.prompt.trim(),
+          kind,
+          hour: b.hour,
+          dayOfWeek,
           dayOfMonth,
-          dayOfWeek: null,
         },
       },
-      subscription: { create: { plan: "SPARK", status: "ACTIVE" } },
+      subscription: {
+        create: { plan: "PRO", status: "TRIALING", trialEndsAt: trialEndDate(now) },
+      },
     },
     include: { schedules: true },
   });

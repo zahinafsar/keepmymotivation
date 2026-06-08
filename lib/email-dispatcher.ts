@@ -1,12 +1,12 @@
 import { prisma } from "./prisma";
 import { sendEmail } from "./resend";
-import { generateScheduledEmailCopy, type ClarifyTurn } from "./gemini";
+import { generateScheduledEmailCopy } from "./gemini";
 import ScheduledEmail from "../emails/ScheduledEmail";
 import { env } from "./env";
 
 export async function sendScheduledEmailForUser(
   userId: string,
-  opts: { preview?: boolean; scheduleId?: string } = {}
+  opts: { preview?: boolean; scheduleId?: string; to?: string } = {}
 ) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -28,17 +28,14 @@ export async function sendScheduledEmailForUser(
   const copy = await generateScheduledEmailCopy({
     fullname: user.fullname,
     prompt: schedule.prompt,
-    clarifyQA: schedule.clarifyQA as unknown as ClarifyTurn[],
-    brief: schedule.brief,
-    subjectHint: schedule.subjectHint,
     dayIndex,
   });
 
-  const showUpgrade = user.subscription.plan === "SPARK";
+  const showUpgrade = user.subscription.status === "TRIALING";
   const manageUrl = `${env.APP_URL}/dashboard`;
 
   await sendEmail({
-    to: user.email,
+    to: opts.to ?? user.email,
     subject: copy.subject,
     react: ScheduledEmail({
       preview: copy.preview,
@@ -49,6 +46,9 @@ export async function sendScheduledEmailForUser(
     }),
     unsubscribeUrl: manageUrl,
   });
+
+  // Test sends to an external address don't count toward the schedule history.
+  if (opts.to) return;
 
   await prisma.emailLog.create({
     data: {

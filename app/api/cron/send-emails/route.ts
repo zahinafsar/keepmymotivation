@@ -3,12 +3,7 @@ import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { sendScheduledEmailForUser } from "@/lib/email-dispatcher";
-import {
-  PLAN_MAX_SCHEDULES,
-  PLAN_ALLOWED_KINDS,
-  alreadySentThisPeriod,
-  matchesSchedule,
-} from "@/lib/plan";
+import { hasAccess, alreadySentThisPeriod, matchesSchedule } from "@/lib/plan";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   const users = await prisma.user.findMany({
     where: {
-      subscription: { status: "ACTIVE" },
+      subscription: { status: { in: ["ACTIVE", "TRIALING"] } },
       schedules: { some: { active: true } },
     },
     include: {
@@ -42,11 +37,12 @@ export async function POST(req: NextRequest) {
     reason?: string;
   }> = [];
 
+  const nowDate = now.toJSDate();
+
   for (const user of users) {
     if (!user.subscription) continue;
-    const plan = user.subscription.plan;
-    const cap = PLAN_MAX_SCHEDULES[plan];
-    const activeSchedules = user.schedules.slice(0, cap);
+    if (!hasAccess(user.subscription, nowDate)) continue;
+    const activeSchedules = user.schedules;
 
     let local: DateTime;
     try {
@@ -62,18 +58,7 @@ export async function POST(req: NextRequest) {
       month: local.month,
     };
 
-    const allowedKinds = PLAN_ALLOWED_KINDS[plan];
-
     for (const schedule of activeSchedules) {
-      if (!allowedKinds.includes(schedule.kind)) {
-        results.push({
-          userId: user.id,
-          scheduleId: schedule.id,
-          sent: false,
-          reason: "kind-not-allowed-on-plan",
-        });
-        continue;
-      }
       if (!matchesSchedule(schedule.kind, schedule, localCtx)) {
         results.push({ userId: user.id, scheduleId: schedule.id, sent: false, reason: "no-match" });
         continue;

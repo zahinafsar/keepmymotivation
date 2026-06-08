@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
-import { PLAN_ALLOWED_KINDS, PLAN_MAX_SCHEDULES } from "@/lib/plan";
+import { hasAccess } from "@/lib/plan";
 import type { ScheduleKind } from "@prisma/client";
 
 export const runtime = "nodejs";
@@ -17,19 +17,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const plan = user.subscription.plan;
-  const allowed = PLAN_ALLOWED_KINDS[plan];
-  const cap = PLAN_MAX_SCHEDULES[plan];
   const body = await req.json().catch(() => ({}));
 
   const kind = (body.kind ?? existing.kind) as ScheduleKind;
-  if (!allowed.includes(kind)) {
-    return NextResponse.json(
-      { error: `Plan ${plan} doesn't allow ${kind} schedules.` },
-      { status: 403 }
-    );
-  }
-
   const hour = body.hour ?? existing.hour;
   if (typeof hour !== "number" || !Number.isInteger(hour) || hour < 0 || hour > 23) {
     return NextResponse.json({ error: "hour must be 0-23" }, { status: 400 });
@@ -54,16 +44,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const wantActive = body.active === undefined ? existing.active : Boolean(body.active);
 
-  if (wantActive && !existing.active) {
-    const activeCount = await prisma.schedule.count({
-      where: { userId: user.id, active: true },
-    });
-    if (activeCount >= cap) {
-      return NextResponse.json(
-        { error: `Plan ${plan} allows ${cap} active schedule(s). Deactivate another first.` },
-        { status: 403 }
-      );
-    }
+  if (wantActive && !existing.active && !hasAccess(user.subscription, new Date())) {
+    return NextResponse.json(
+      { error: "Your trial has ended. Subscribe to activate schedules." },
+      { status: 403 }
+    );
   }
 
   const updated = await prisma.schedule.update({
