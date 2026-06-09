@@ -113,7 +113,7 @@ export default function HomeClient() {
           <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient">
             One plan. Everything included.
           </h2>
-          <article className="plan-card current relative grid gap-8 md:grid-cols-[auto_1fr_auto] md:items-center">
+          <article className="plan-card current relative grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
             <span className="absolute top-4 right-4 md:hidden text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full bg-[color:var(--accent)]/15 text-[color:var(--accent)]">
               7-day free trial
             </span>
@@ -121,45 +121,37 @@ export default function HomeClient() {
             {/* Price block */}
             <div className="md:pr-8 md:border-r md:border-white/10">
               <p className="font-semibold text-lg">{PLAN.name}</p>
-              <p className="text-[color:var(--muted)] text-xs mb-3">{PLAN.tagline}</p>
-              <div className="flex items-baseline gap-1">
+              <div className="flex items-baseline gap-1 mt-2">
                 <span className="text-4xl font-bold text-gradient">{PLAN.price}</span>
                 <span className="text-[color:var(--muted)] text-sm">{PLAN.period}</span>
               </div>
               <p className="text-xs text-[color:var(--accent)] mt-1">{PLAN.trial}</p>
             </div>
 
-            {/* Features */}
-            <ul className="grid gap-2.5 text-sm sm:grid-cols-2 md:grid-cols-1">
-              {PLAN.features.map((f) => (
-                <li key={f} className="flex items-start gap-2">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="mt-[3px] shrink-0 text-[color:var(--accent)]"
-                    aria-hidden="true"
-                  >
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-
-            {/* CTA */}
-            <div className="md:w-48">
-              <button
-                onClick={() => router.push("/signup")}
-                className="btn-3d w-full text-sm"
-              >
-                Start free trial
-              </button>
+            {/* Description + features */}
+            <div>
+              <p className="text-[color:var(--muted)] text-sm mb-4">{PLAN.tagline}</p>
+              <ul className="grid gap-2.5 text-sm sm:grid-cols-2 md:grid-cols-1">
+                {PLAN.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="mt-[3px] shrink-0 text-[color:var(--accent)]"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </article>
         </section>

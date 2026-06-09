@@ -195,7 +195,7 @@ export default function ScheduleComposer({
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setPreviewOpen(false)}
           />
-          <div className="glass relative z-10 w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden p-0">
+          <div className="glass relative z-10 w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden p-0">
             <div className="flex items-start justify-between gap-4 p-5 border-b border-white/10">
               <div className="min-w-0">
                 <p className="text-xs uppercase tracking-wider text-[color:var(--muted)] mb-1">
