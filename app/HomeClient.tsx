@@ -16,6 +16,29 @@ const PLAN = {
   ],
 };
 
+const EXAMPLES = [
+  "Daily SQL interview question",
+  "Weekly NBA scores recap",
+  "Monthly book summary",
+  "Morning motivation nudge",
+  "Daily language drill",
+];
+
+const STEPS = [
+  {
+    title: "Describe it once",
+    body: "Tell the AI what you want emailed — no forms, no questions. One prompt is enough.",
+  },
+  {
+    title: "Preview before you commit",
+    body: "Generate a real email instantly and tweak the prompt until it's exactly right.",
+  },
+  {
+    title: "Fresh every send",
+    body: "Each email is generated from scratch against your prompt, so it stays relevant instead of repeating.",
+  },
+];
+
 export default function HomeClient() {
   const router = useRouter();
 
@@ -48,21 +71,26 @@ export default function HomeClient() {
         </header>
 
         <section className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-          <div className="w-full max-w-xl">
-            <h1 className="text-3xl sm:text-4xl font-bold leading-[1.15] text-center text-balance mb-10 fade-up text-gradient mx-auto">
+          <div className="w-full max-w-2xl">
+
+            <h1 className="text-3xl sm:text-5xl font-bold leading-[1.1] text-center text-balance mb-4 fade-up delay-100 text-gradient mx-auto">
               Ask what you need.
               <br />
               Let AI decide how to deliver.
             </h1>
 
-            <ScheduleComposer submitLabel="Create account" onSubmit={startSignup} />
+            <ScheduleComposer
+              submitLabel="Create account"
+              onSubmit={startSignup}
+              examples={EXAMPLES}
+            />
           </div>
         </section>
       </div>
 
       <aside className="relative z-10 max-w-5xl w-full mx-auto px-6 py-16 space-y-16">
         <section>
-          <h2 className="text-2xl font-bold mb-2 text-gradient">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-gradient">
             Any email. On your schedule. Written by AI.
           </h2>
           <p className="text-[color:var(--muted)] max-w-2xl mb-8">
@@ -71,83 +99,73 @@ export default function HomeClient() {
             describe it, we can send it daily, weekly, or monthly.
           </p>
           <div className="grid gap-4 sm:grid-cols-3">
-            <article className="glass p-5">
-              <h3 className="font-semibold mb-2">Describe it once</h3>
-              <p className="text-sm text-[color:var(--muted)]">
-                Tell the AI what you want emailed — no forms, no questions. One prompt is enough.
-              </p>
-            </article>
-            <article className="glass p-5">
-              <h3 className="font-semibold mb-2">Preview before you commit</h3>
-              <p className="text-sm text-[color:var(--muted)]">
-                Generate a real email instantly and tweak the prompt until it&apos;s exactly right.
-              </p>
-            </article>
-            <article className="glass p-5">
-              <h3 className="font-semibold mb-2">Fresh every send</h3>
-              <p className="text-sm text-[color:var(--muted)]">
-                Each email is generated from scratch against your prompt, so it stays relevant
-                instead of repeating.
-              </p>
-            </article>
+            {STEPS.map((s, i) => (
+              <article key={s.title} className="glass glass-hover p-5">
+                <span className="step-num mb-4">{i + 1}</span>
+                <h3 className="font-semibold mb-2">{s.title}</h3>
+                <p className="text-sm text-[color:var(--muted)]">{s.body}</p>
+              </article>
+            ))}
           </div>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold mb-6 text-gradient">Pricing</h2>
-          <div className="max-w-sm mx-auto">
-            <article className="plan-card flex flex-col h-full relative ring-1 ring-[color:var(--accent)]/40">
-              <span className="absolute top-3 right-3 text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full bg-[color:var(--accent)]/15 text-[color:var(--accent)]">
-                7-day free trial
-              </span>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient">
+            One plan. Everything included.
+          </h2>
+          <article className="plan-card current relative grid gap-8 md:grid-cols-[auto_1fr_auto] md:items-center">
+            <span className="absolute top-4 right-4 md:hidden text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full bg-[color:var(--accent)]/15 text-[color:var(--accent)]">
+              7-day free trial
+            </span>
 
-              <div className="mb-4">
-                <p className="font-semibold text-lg">{PLAN.name}</p>
-                <p className="text-[color:var(--muted)] text-xs">{PLAN.tagline}</p>
-              </div>
-
-              <div className="mb-1 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-gradient">{PLAN.price}</span>
+            {/* Price block */}
+            <div className="md:pr-8 md:border-r md:border-white/10">
+              <p className="font-semibold text-lg">{PLAN.name}</p>
+              <p className="text-[color:var(--muted)] text-xs mb-3">{PLAN.tagline}</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-gradient">{PLAN.price}</span>
                 <span className="text-[color:var(--muted)] text-sm">{PLAN.period}</span>
               </div>
-              <p className="text-xs text-[color:var(--accent)] mb-5">{PLAN.trial}</p>
+              <p className="text-xs text-[color:var(--accent)] mt-1">{PLAN.trial}</p>
+            </div>
 
-              <ul className="space-y-2 mb-6 text-sm">
-                {PLAN.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mt-[3px] shrink-0 text-[color:var(--accent)]"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Features */}
+            <ul className="grid gap-2.5 text-sm sm:grid-cols-2 md:grid-cols-1">
+              {PLAN.features.map((f) => (
+                <li key={f} className="flex items-start gap-2">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mt-[3px] shrink-0 text-[color:var(--accent)]"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
 
-              <div className="mt-auto">
-                <button
-                  onClick={() => router.push("/signup")}
-                  className="btn-3d w-full text-sm"
-                >
-                  Start free trial
-                </button>
-              </div>
-            </article>
-          </div>
+            {/* CTA */}
+            <div className="md:w-48">
+              <button
+                onClick={() => router.push("/signup")}
+                className="btn-3d w-full text-sm"
+              >
+                Start free trial
+              </button>
+            </div>
+          </article>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold mb-6 text-gradient">Frequently asked</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient">Frequently asked</h2>
           <div className="space-y-4">
             <details className="glass p-5">
               <summary className="font-semibold cursor-pointer">

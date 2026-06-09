@@ -33,10 +33,12 @@ export default function ScheduleComposer({
   submitLabel,
   onSubmit,
   defaultKind = "DAILY",
+  examples,
 }: {
   submitLabel: string;
   onSubmit: (payload: SchedulePayload) => Promise<void> | void;
   defaultKind?: Kind;
+  examples?: string[];
 }) {
   const [prompt, setPrompt] = useState("");
   const [kind, setKind] = useState<Kind>(defaultKind);
@@ -128,6 +130,23 @@ export default function ScheduleComposer({
             rows={3}
           />
         </div>
+        {examples && examples.length > 0 && (
+          <div className="flex flex-wrap gap-2 justify-center pt-1">
+            {examples.map((ex) => (
+              <button
+                key={ex}
+                type="button"
+                onClick={() => {
+                  setPrompt(ex);
+                  setError(null);
+                }}
+                className="chip"
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        )}
         <button
           type="button"
           onClick={runPreview}
