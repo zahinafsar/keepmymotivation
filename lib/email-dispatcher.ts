@@ -22,13 +22,24 @@ export async function sendScheduledEmailForUser(
     : user.schedules[0];
   if (!schedule) throw new Error("Schedule missing");
 
-  const dayIndex =
-    (await prisma.emailLog.count({ where: { scheduleId: schedule.id } })) + 1;
+  // Two index-only reads on [scheduleId, sentAt], run together: total count for
+  // the freshness hint, and the most recent subjects as topic memory. We select
+  // ONLY `subject` — never `body` — to keep the payload tiny.
+  const [sentCount, recent] = await Promise.all([
+    prisma.emailLog.count({ where: { scheduleId: schedule.id } }),
+    prisma.emailLog.findMany({
+      where: { scheduleId: schedule.id },
+      orderBy: { sentAt: "desc" },
+      take: 15,
+      select: { subject: true },
+    }),
+  ]);
 
   const copy = await generateScheduledEmailCopy({
     fullname: user.fullname,
     prompt: schedule.prompt,
-    dayIndex,
+    dayIndex: sentCount + 1,
+    priorTopics: recent.map((r) => r.subject),
   });
 
   const showUpgrade = user.subscription.status === "TRIALING";

@@ -40,7 +40,12 @@ MARKDOWN RULES (body):
 - Tables, images, raw HTML: do NOT use (poor email-client support).
 - Keep it tight. No filler, no throat-clearing, no platitudes.
 - Vary structure across sends (use dayIndex hint to avoid repeating phrasing).
-- No emojis unless the request explicitly asks for them.`;
+- No emojis unless the request explicitly asks for them.
+
+SEQUENCING:
+- If an "Already sent" list is provided, treat it as the topics already covered in this schedule.
+- When the request implies an ordered series (a course, lessons, chapters, "one topic per day"), continue from where that list leaves off — pick the NEXT logical topic, never one already listed.
+- When the request is open-ended (tips, news, motivation), just pick a fresh angle not already covered.`;
 
 const SUBJECT_SYSTEM = `You write the inbox subject line and preview text for a finished email body.
 
@@ -77,10 +82,17 @@ export async function generateScheduledEmailCopy(input: {
   fullname: string;
   prompt: string;
   dayIndex: number;
+  priorTopics?: string[];
 }): Promise<ScheduledEmailCopy> {
+  const priorBlock = input.priorTopics?.length
+    ? `\nAlready sent (newest first):\n${input.priorTopics
+        .map((t) => `- ${t}`)
+        .join("\n")}\nCover the NEXT topic in the series; do NOT repeat any of the above.`
+    : "";
+
   const userPrompt = `Recipient first name: ${input.fullname.split(" ")[0]}
 Request: ${input.prompt}
-This is email #${input.dayIndex} in their schedule. Keep it fresh — avoid repeating phrasing from earlier sends.`;
+This is email #${input.dayIndex} in their schedule. Keep it fresh — avoid repeating phrasing from earlier sends.${priorBlock}`;
 
   // Tools need Firecrawl; only offer them when configured.
   // NOTE: Gemini can't combine function-calling with JSON output in one call,
