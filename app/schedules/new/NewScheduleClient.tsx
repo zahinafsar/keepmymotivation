@@ -1,10 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ScheduleComposer, { type SchedulePayload } from "@/components/ScheduleComposer";
 
 export default function NewScheduleClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const welcome = searchParams.get("welcome") === "1";
+  const [defaultPrompt, setDefaultPrompt] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDefaultPrompt(sessionStorage.getItem("kmm_prompt") ?? "");
+  }, []);
 
   async function save(payload: SchedulePayload) {
     const res = await fetch("/api/schedules", {
@@ -14,7 +22,8 @@ export default function NewScheduleClient() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "Failed");
-    router.push("/dashboard");
+    sessionStorage.removeItem("kmm_prompt");
+    router.push(welcome ? "/dashboard?welcome=1" : "/dashboard");
   }
 
   return (
@@ -45,7 +54,13 @@ export default function NewScheduleClient() {
               Tell us what you want to receive. Preview it, then we&apos;ll send it on your schedule.
             </p>
 
-            <ScheduleComposer submitLabel="Save schedule" onSubmit={save} />
+            {defaultPrompt !== null && (
+              <ScheduleComposer
+                submitLabel="Save schedule"
+                onSubmit={save}
+                defaultPrompt={defaultPrompt}
+              />
+            )}
           </div>
         </section>
       </div>

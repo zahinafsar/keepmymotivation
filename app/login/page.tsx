@@ -68,7 +68,7 @@ export default function LoginPage() {
             </button>
             <p className="text-center text-sm text-[color:var(--muted)]">
               New here?{" "}
-              <a href="/" className="text-white hover:underline">
+              <a href="/signup" className="text-white hover:underline">
                 Create your first schedule
               </a>
             </p>

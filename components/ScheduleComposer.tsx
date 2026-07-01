@@ -33,14 +33,16 @@ export default function ScheduleComposer({
   submitLabel,
   onSubmit,
   defaultKind = "DAILY",
+  defaultPrompt = "",
   examples,
 }: {
   submitLabel: string;
   onSubmit: (payload: SchedulePayload) => Promise<void> | void;
   defaultKind?: Kind;
+  defaultPrompt?: string;
   examples?: string[];
 }) {
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(defaultPrompt);
   const [kind, setKind] = useState<Kind>(defaultKind);
   const [hour, setHour] = useState(8);
   const [dayOfWeek, setDayOfWeek] = useState(1);

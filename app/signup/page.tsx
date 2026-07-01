@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-type Onboarding = {
-  prompt: string;
-  kind: "DAILY" | "WEEKLY" | "MONTHLY";
-  hour: number;
-  dayOfWeek?: number;
-  dayOfMonth?: number;
-  timezone: string;
-};
 
 type Stage = "name" | "email" | "otp" | "pin" | "done";
 
 export default function SignupPage() {
   const router = useRouter();
-  const [onboarding, setOnboarding] = useState<Onboarding | null>(null);
   const [stage, setStage] = useState<Stage>("name");
   const [fullname, setFullname] = useState("");
   const [email, setEmail] = useState("");
@@ -25,27 +15,6 @@ export default function SignupPage() {
   const [confirmPin, setConfirmPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const raw = sessionStorage.getItem("kmm_onboarding");
-    if (!raw) {
-      router.replace("/");
-      return;
-    }
-    setOnboarding(JSON.parse(raw) as Onboarding);
-  }, [router]);
-
-  if (!onboarding) {
-    return (
-      <main className="min-h-screen flex items-center justify-center text-[color:var(--muted)] relative">
-        <div className="aurora"><span /></div>
-        <div className="grid-overlay" />
-        <span className="relative z-10 pulse-glow inline-block px-4 py-2 rounded-full">
-          Loading…
-        </span>
-      </main>
-    );
-  }
 
   async function submitName(e: React.FormEvent) {
     e.preventDefault();
@@ -118,15 +87,16 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
     try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const r = await fetch("/api/signup/complete", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fullname, email, pin, ...onboarding }),
+        body: JSON.stringify({ fullname, email, pin, timezone }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "Failed");
-      sessionStorage.removeItem("kmm_onboarding");
-      router.push("/dashboard?welcome=1");
+      const hasPrompt = !!sessionStorage.getItem("kmm_prompt");
+      router.push(hasPrompt ? "/schedules/new?welcome=1" : "/dashboard?welcome=1");
     } catch (e) {
       setError((e as Error).message);
       setLoading(false);
