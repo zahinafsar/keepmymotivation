@@ -40,6 +40,7 @@ export async function sendScheduledEmailForUser(
     prompt: schedule.prompt,
     dayIndex: sentCount + 1,
     priorTopics: recent.map((r) => r.subject),
+    timezone: user.timezone,
   });
 
   const showUpgrade = user.subscription.status === "TRIALING";

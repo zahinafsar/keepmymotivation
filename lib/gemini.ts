@@ -25,11 +25,15 @@ Output ONLY the email body in GitHub-flavored Markdown — no preamble, no code 
 DECIDE EVERYTHING the request leaves open (tone, depth, length, audience level, structure) with sensible defaults that fit the topic. Don't ask — just produce a strong email.
 
 LIVE SOURCES (tools):
-- You may have two tools: webSearch (fresh info from a query) and scrapeUrl (read one URL as markdown).
-- If the request needs CURRENT information, call webSearch first. If it names specific URLs to read, call scrapeUrl on them.
+- You may have two tools: webSearch (search query, returns scraped snippets from top results) and scrapeUrl (read one specific URL as markdown).
+- Today's date is given below. Trust it over your own training knowledge — your training data has a cutoff and cannot know what has happened since, including scores, results, standings, prices, or schedules for "today."
+- If the request needs CURRENT information (anything that could have changed, happened, or been published since your training cutoff), you MUST fetch it live — do NOT answer from memory or assume nothing is happening just because your training data predates today's date. For any recurring time-sensitive topic, fetch fresh on EVERY send, never reuse stale assumptions. Pick ONE of these three, based on what the request says:
+  1. Request gives a specific URL → call scrapeUrl directly on it (each URL given). Do not call webSearch first.
+  2. Request names a specific site/source but no URL (e.g. "Prothom Alo", "ESPN", "BBC", "Hacker News") → call webSearch with a query naming that source plus the topic (e.g. "Prothom Alo top news today", or "site:prothomalo.com top news" if you know the domain), so results are pulled from that source. If one of the results is clearly the source's own page, scrapeUrl it for fuller detail.
+  3. Request needs current info but names no source → call webSearch with a plain topical query and use whatever top results come back.
 - Base any factual content STRICTLY on tool results — never invent figures, dates, quotes, or links beyond what they return.
-- If a tool returns nothing usable, write from your own knowledge. Never mention tools, searches, fetch failures, or sources to the reader.
-- Don't call tools when the email needs no live data (timeless motivation, evergreen tips, code/Q&A).
+- If a tool returns nothing usable, say so briefly and honestly instead of inventing facts.
+- Don't call tools when the email genuinely needs no live data (timeless motivation, evergreen tips, code/Q&A).
 
 - Write in the same language as the fetched source content (or the request when there are no sources).
 
@@ -62,7 +66,7 @@ const subjectSchema = z.object({
 
 const searchWebTool = tool({
   description:
-    "Search the web for current, up-to-date information. Returns markdown snippets from the top results. Use when the email needs fresh facts, news, prices, scores, or anything time-sensitive.",
+    "Search the web for current, up-to-date information. Returns markdown snippets scraped from the top results. Use for fresh facts, news, prices, scores, or anything time-sensitive when no exact URL was given. If the request names a specific site/source, include its name (and its domain via a `site:domain.com` filter if you know it) in the query so results come from that source.",
   inputSchema: z.object({
     query: z.string().describe("A concise web search query."),
   }),
@@ -71,7 +75,7 @@ const searchWebTool = tool({
 
 const scrapeUrlTool = tool({
   description:
-    "Fetch the main content of one specific URL as markdown. Use when the user prompt names a URL to read or summarize.",
+    "Fetch the main content of one specific URL as markdown. Use when the user prompt gives an exact URL to read, or when webSearch surfaced a link that's clearly the named source and you need fuller detail than the search snippet gave.",
   inputSchema: z.object({
     url: z.string().describe("An absolute http(s) URL to fetch."),
   }),
@@ -83,6 +87,7 @@ export async function generateScheduledEmailCopy(input: {
   prompt: string;
   dayIndex: number;
   priorTopics?: string[];
+  timezone?: string;
 }): Promise<ScheduledEmailCopy> {
   const priorBlock = input.priorTopics?.length
     ? `\nAlready sent (newest first):\n${input.priorTopics
@@ -90,7 +95,16 @@ export async function generateScheduledEmailCopy(input: {
         .join("\n")}\nCover the NEXT topic in the series; do NOT repeat any of the above.`
     : "";
 
-  const userPrompt = `Recipient first name: ${input.fullname.split(" ")[0]}
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: input.timezone || "UTC",
+  });
+
+  const userPrompt = `Today's date: ${today}${input.timezone ? ` (${input.timezone})` : ""}
+Recipient first name: ${input.fullname.split(" ")[0]}
 Request: ${input.prompt}
 This is email #${input.dayIndex} in their schedule. Keep it fresh — avoid repeating phrasing from earlier sends.${priorBlock}`;
 
